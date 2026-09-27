@@ -13,9 +13,10 @@ import {
   Users,
   AlertCircle,
   Bell,
-  BellRing
+  BellRing,
+  Volume2
 } from 'lucide-react'
-import { ALERT_OPTIONS, requestNotificationPermission } from '../utils/notifications'
+import { ALERT_OPTIONS, requestNotificationPermission, triggerTestAlert } from '../utils/notifications'
 
 const COMMON_SERVICES = [
   'Consulenza',
@@ -53,6 +54,21 @@ export default function AppointmentModal({
 
   const [formError, setFormError] = useState('')
   const [selectedRubricaId, setSelectedRubricaId] = useState('')
+  const [testAlertInfo, setTestAlertInfo] = useState(null)
+  const [isTesting, setIsTesting] = useState(false)
+
+  const handleRunTestAlert = async () => {
+    setIsTesting(true)
+    setTestAlertInfo(null)
+    try {
+      const res = await triggerTestAlert()
+      setTestAlertInfo(res)
+    } catch (e) {
+      setTestAlertInfo({ success: false, message: 'Errore durante il test dell\'avviso.' })
+    } finally {
+      setIsTesting(false)
+    }
+  }
 
   // Clienti ordinati alfabeticamente A-Z per il richiamo rapido (null-safe)
   const safeClients = useMemo(() => {
@@ -423,27 +439,42 @@ export default function AppointmentModal({
           </div>
 
           {/* SEZIONE PROMEMORIA ALERT PER IL CELLULARE */}
-          <div className="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 space-y-2.5">
-            <div className="flex items-center justify-between">
+          <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200/90 space-y-2.5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <label className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
                 <BellRing className="w-4 h-4 text-amber-600" />
                 <span>Promemoria Alert Cellulare</span>
               </label>
+
+              {/* Pulsante per testare subito l'alert con suono, vibrazione e notifica */}
               <button
                 type="button"
-                onClick={async () => {
-                  const perm = await requestNotificationPermission()
-                  if (perm === 'granted') {
-                    alert('Notifiche attivate con successo sul tuo dispositivo! 🔔')
-                  }
-                }}
-                className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 underline cursor-pointer"
+                onClick={handleRunTestAlert}
+                disabled={isTesting}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-lg text-[11px] font-bold shadow-xs transition cursor-pointer disabled:opacity-50"
+                title="Invia subito una notifica di prova con suono e vibrazione al tuo cellulare"
               >
-                Abilita su smartphone
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>{isTesting ? 'Invio test...' : '🧪 Prova Alert Ora'}</span>
               </button>
             </div>
-            <p className="text-[11px] text-amber-800/80">
-              Scegli quando far squillare o ricevere l'avviso promemoria sul tuo cellulare per questo appuntamento:
+
+            {/* Esito del Test Alert */}
+            {testAlertInfo && (
+              <div
+                className={`p-2.5 rounded-xl text-xs font-medium border flex items-start gap-2 animate-in fade-in duration-150 ${
+                  testAlertInfo.success
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
+              >
+                <span className="text-sm shrink-0">{testAlertInfo.success ? '✅' : '⚠️'}</span>
+                <span className="flex-1">{testAlertInfo.message}</span>
+              </div>
+            )}
+
+            <p className="text-[11px] text-amber-900/80">
+              Scegli quando far squillare o ricevere l'avviso promemoria sul tuo cellulare:
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">

@@ -11,10 +11,13 @@ import {
   RefreshCw,
   Check,
   Share2,
-  Copy
+  Copy,
+  Bell,
+  Volume2
 } from 'lucide-react'
 import { exportDataAsJSON, importDataFromJSON } from '../utils/storage'
 import { generateRoomCode } from '../utils/cloudSync'
+import { triggerTestAlert } from '../utils/notifications'
 
 export default function SettingsModal({
   isOpen,
@@ -28,6 +31,21 @@ export default function SettingsModal({
   const [activeTab, setActiveTab] = useState('templates') // templates, general, sync, backup, mobile
   const [copyCodeSuccess, setCopyCodeSuccess] = useState(false)
   const [importStatus, setImportStatus] = useState(null)
+  const [testAlertResult, setTestAlertResult] = useState(null)
+  const [isTestingAlert, setIsTestingAlert] = useState(false)
+
+  const handleTestAlert = async () => {
+    setIsTestingAlert(true)
+    setTestAlertResult(null)
+    try {
+      const res = await triggerTestAlert()
+      setTestAlertResult(res)
+    } catch (e) {
+      setTestAlertResult({ success: false, message: 'Errore durante l\'invio del test.' })
+    } finally {
+      setIsTestingAlert(false)
+    }
+  }
 
   if (!isOpen) return null
 
@@ -112,7 +130,7 @@ export default function SettingsModal({
             { id: 'templates', label: 'Modelli WhatsApp', icon: MessageCircle },
             { id: 'sync', label: 'PC & Smartphone Sync', icon: Cloud },
             { id: 'general', label: 'Studio & Prefisso', icon: Building },
-            { id: 'mobile', label: 'App su Telefono', icon: Smartphone },
+            { id: 'mobile', label: 'Notifiche & Telefono', icon: Bell },
             { id: 'backup', label: 'Backup Dati', icon: Download }
           ].map((tab) => {
             const Icon = tab.icon
@@ -332,6 +350,46 @@ export default function SettingsModal({
                     <strong className="text-emerald-700 block mb-0.5">🤖 Su Android (Chrome):</strong>
                     <span>Tocca i tre puntini in alto a destra e seleziona <strong>"Aggiungi a schermata Home"</strong> o <strong>"Installa app"</strong>.</span>
                   </div>
+                </div>
+
+                {/* Box Test Alert Smartphone */}
+                <div className="mt-4 p-4 bg-amber-50/80 rounded-2xl border border-amber-200/90 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-700">
+                        <Bell className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-amber-950">Test Notifiche & Promemoria Cellulare</h4>
+                        <p className="text-[11px] text-amber-800">
+                          Verifica subito se il tuo telefono riceve la notifica con suono e vibrazione
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleTestAlert}
+                      disabled={isTestingAlert}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-50"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      <span>{isTestingAlert ? 'Invio test...' : '🧪 Prova Alert Ora'}</span>
+                    </button>
+                  </div>
+
+                  {testAlertResult && (
+                    <div
+                      className={`p-2.5 rounded-xl text-xs font-medium border flex items-start gap-2 ${
+                        testAlertResult.success
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : 'bg-rose-50 border-rose-200 text-rose-800'
+                      }`}
+                    >
+                      <span className="text-sm shrink-0">{testAlertResult.success ? '✅' : '⚠️'}</span>
+                      <span className="flex-1">{testAlertResult.message}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
