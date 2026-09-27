@@ -264,6 +264,13 @@ export default function App() {
     setIsAppointmentModalOpen(true)
   }
 
+  // Se l'utente apre la rubrica e la lista è vuota, sincronizza subito dal cloud
+  useEffect(() => {
+    if (isClientsModalOpen && clients.length === 0) {
+      handleTriggerSync(false)
+    }
+  }, [isClientsModalOpen, clients.length])
+
   const handleHardReload = () => {
     if ('caches' in window) {
       caches.keys().then((names) => {
@@ -429,6 +436,8 @@ export default function App() {
           })
         }}
         onNewAppointmentWithClient={handleNewAppointmentWithClient}
+        onTriggerSync={() => handleTriggerSync(false)}
+        isSyncing={isSyncing}
       />
 
       {/* 4. Modale Statistiche & Report */}

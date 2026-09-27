@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   X,
   Calendar,
@@ -55,18 +55,20 @@ export default function AppointmentModal({
   const [searchClientQuery, setSearchClientQuery] = useState('')
   const [selectedClientId, setSelectedClientId] = useState('')
 
-  // Clienti ordinati alfabeticamente A-Z per il richiamo rapido
+  // Clienti ordinati alfabeticamente A-Z per il richiamo rapido (null-safe)
   const sortedClients = useMemo(() => {
-    return [...clients].sort((a, b) =>
-      a.name.localeCompare(b.name, 'it', { sensitivity: 'base' })
-    )
+    return [...(clients || [])]
+      .filter((c) => c && typeof c === 'object')
+      .sort((a, b) =>
+        String(a.name || '').localeCompare(String(b.name || ''), 'it', { sensitivity: 'base' })
+      )
   }, [clients])
 
   const filteredClientsList = useMemo(() => {
-    if (!searchClientQuery.trim()) return sortedClients
-    const q = searchClientQuery.toLowerCase()
+    const q = (searchClientQuery || '').toLowerCase().trim()
+    if (!q) return sortedClients
     return sortedClients.filter(
-      (c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q))
+      (c) => String(c.name || '').toLowerCase().includes(q) || String(c.phone || '').includes(q)
     )
   }, [sortedClients, searchClientQuery])
 

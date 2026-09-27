@@ -15,7 +15,8 @@ import {
   HelpCircle,
   ExternalLink,
   ChevronRight,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react'
 import { getWhatsAppUrl } from '../utils/whatsapp'
 import { parseGoogleContactsCSV, parseVCard, pickNativeContacts } from '../utils/googleContactsParser'
@@ -29,36 +30,50 @@ export default function ClientDirectoryModal({
   appointments = [],
   onSaveClient,
   onDeleteClient,
-  onNewAppointmentWithClient
+  onNewAppointmentWithClient,
+  onTriggerSync,
+  isSyncing = false
 }) {
   const [search, setSearch] = useState('')
   const [editingClient, setEditingClient] = useState(null)
   const [clientForm, setClientForm] = useState({ name: '', phone: '', notes: '' })
   const [isAddingNew, setIsAddingNew] = useState(false)
-  const [showGoogleGuide, setShowGoogleGuide] = useState(false)
   const [importNotification, setImportNotification] = useState(null)
   const [activeLetterIndicator, setActiveLetterIndicator] = useState(null)
 
   const fileInputRef = useRef(null)
   const listContainerRef = useRef(null)
 
-  if (!isOpen) return null
+  // Calcolo sicuro e ordinato dei clienti (null-safe per prevenire qualsiasi schermata bianca)
+  const safeClients = useMemo(() => {
+    if (!Array.isArray(clients)) return []
+    return clients.filter((c) => c && typeof c === 'object')
+  }, [clients])
 
-  // Filtra e ordina alfabeticamente A-Z
+  // Filtra e ordina alfabeticamente A-Z senza possibilità di eccezioni
   const sortedAndFiltered = useMemo(() => {
-    return clients
+    const q = (search || '').toLowerCase().trim()
+    return safeClients
       .filter((c) => {
-        const q = search.toLowerCase()
-        return c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q))
+        if (!q) return true
+        const name = String(c.name || '').toLowerCase()
+        const phone = String(c.phone || '')
+        const notes = String(c.notes || '').toLowerCase()
+        return name.includes(q) || phone.includes(q) || notes.includes(q)
       })
-      .sort((a, b) => a.name.localeCompare(b.name, 'it', { sensitivity: 'base' }))
-  }, [clients, search])
+      .sort((a, b) => {
+        const nameA = String(a.name || '').trim()
+        const nameB = String(b.name || '').trim()
+        return nameA.localeCompare(nameB, 'it', { sensitivity: 'base' })
+      })
+  }, [safeClients, search])
 
   // Raggruppa i clienti per lettera iniziale
   const groupedClients = useMemo(() => {
     const groups = {}
     sortedAndFiltered.forEach((client) => {
-      const firstChar = (client.name[0] || '#').toUpperCase()
+      const rawName = String(client.name || '').trim()
+      const firstChar = rawName ? rawName[0].toUpperCase() : '#'
       const key = /[A-Z]/.test(firstChar) ? firstChar : '#'
       if (!groups[key]) groups[key] = []
       groups[key].push(client)
@@ -71,10 +86,12 @@ export default function ClientDirectoryModal({
     return new Set(Object.keys(groupedClients))
   }, [groupedClients])
 
+  if (!isOpen) return null
+
   // Scorrimento veloce alla lettera selezionata
   const scrollToLetter = (letter) => {
     setActiveLetterIndicator(letter)
-    setTimeout(() => setActiveLetterIndicator(null), 1200)
+    setTimeout(() => setActiveLetterIndicator(null), 1000)
 
     const targetEl = document.getElementById(`section-letter-${letter}`)
     if (targetEl && listContainerRef.current) {
@@ -100,13 +117,15 @@ export default function ClientDirectoryModal({
 
   const startEdit = (c) => {
     setEditingClient(c)
-    setClientForm({ name: c.name, phone: c.phone || '', notes: c.notes || '' })
+    setClientForm({ name: c.name || '', phone: c.phone || '', notes: c.notes || '' })
     setIsAddingNew(true)
   }
 
   const getClientAppCount = (clientName) => {
+    if (!clientName || !Array.isArray(appointments)) return 0
+    const target = String(clientName).toLowerCase().trim()
     return appointments.filter(
-      (a) => (a.clientName || '').toLowerCase() === clientName.toLowerCase()
+      (a) => String(a.clientName || '').toLowerCase().trim() === target
     ).length
   }
 
@@ -120,7 +139,7 @@ export default function ClientDirectoryModal({
       if (typeof text !== 'string') return
 
       let parsedContacts = []
-      if (file.name.endsWith('.vcf')) {
+      if (file.name.toLowerCase().endsWith('.vcf')) {
         parsedContacts = parseVCard(text)
       } else {
         parsedContacts = parseGoogleContactsCSV(text)
@@ -129,17 +148,17 @@ export default function ClientDirectoryModal({
       if (parsedContacts.length === 0) {
         setImportNotification({
           type: 'error',
-          text: 'Nessun contatto trovato nel file Google.'
+          text: 'Nessun contatto valido trovato nel file caricato.'
         })
         return
       }
 
       let addedCount = 0
       parsedContacts.forEach((imported) => {
-        const alreadyExists = clients.some(
+        const alreadyExists = safeClients.some(
           (c) =>
-            c.name.toLowerCase() === imported.name.toLowerCase() ||
-            (imported.phone && c.phone && c.phone === imported.phone)
+            String(c.name || '').toLowerCase() === String(imported.name || '').toLowerCase() ||
+            (imported.phone && c.phone && String(c.phone) === String(imported.phone))
         )
         if (!alreadyExists) {
           onSaveClient(imported)
@@ -149,7 +168,7 @@ export default function ClientDirectoryModal({
 
       setImportNotification({
         type: 'success',
-        text: `Importati con successo ${addedCount} contatti da Google!`
+        text: `Importati con successo ${addedCount} contatti!`
       })
       setTimeout(() => setImportNotification(null), 5000)
     }
@@ -177,56 +196,69 @@ export default function ClientDirectoryModal({
   const isContactPickerSupported = typeof navigator !== 'undefined' && 'contacts' in navigator
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-slate-200 flex flex-col h-[92vh] max-h-[720px] overflow-hidden">
         {/* Header Bianco Luminoso */}
-        <div className="bg-white border-b border-slate-100 text-slate-800 px-6 py-4 flex items-center justify-between">
+        <div className="bg-white border-b border-slate-100 text-slate-800 px-4 sm:px-6 py-3.5 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="bg-blue-50 text-blue-600 p-2 rounded-xl border border-blue-100">
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Rubrica Clienti</h2>
+              <h2 className="text-base font-bold text-slate-900 leading-tight">Rubrica Clienti</h2>
               <p className="text-xs text-slate-500">
-                {clients.length} contatti • Clicca su un cliente per selezionarlo
+                {safeClients.length} {safeClients.length === 1 ? 'cliente salvato' : 'clienti salvati'} • Clicca per selezionare
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            {onTriggerSync && (
+              <button
+                type="button"
+                onClick={onTriggerSync}
+                className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition cursor-pointer"
+                title="Sincronizza contatti dal Cloud"
+              >
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-blue-600' : ''}`} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Notifica */}
+        {/* Notifica di importazione */}
         {importNotification && (
           <div
-            className={`p-3 text-xs font-semibold flex items-center justify-between border-b ${
+            className={`p-2.5 px-4 text-xs font-semibold flex items-center justify-between border-b shrink-0 ${
               importNotification.type === 'success'
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                 : 'bg-rose-50 text-rose-800 border-rose-200'
             }`}
           >
             <span>{importNotification.text}</span>
-            <button onClick={() => setImportNotification(null)}>
-              <X className="w-4 h-4" />
+            <button type="button" onClick={() => setImportNotification(null)} className="cursor-pointer">
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
 
-        {/* Indicatore visivo grande della lettera durante lo scorrimento veloce */}
+        {/* Indicatore visivo della lettera durante lo scorrimento */}
         {activeLetterIndicator && (
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-40">
-            <div className="w-20 h-20 bg-blue-600/90 text-white font-black text-4xl rounded-2xl flex items-center justify-center shadow-2xl backdrop-blur-xs animate-in zoom-in duration-150">
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
+            <div className="w-20 h-20 bg-blue-600/95 text-white font-black text-4xl rounded-2xl flex items-center justify-center shadow-2xl animate-in zoom-in duration-100">
               {activeLetterIndicator}
             </div>
           </div>
         )}
 
         {/* Barra Azioni: Importa Google + Nuovo Cliente */}
-        <div className="p-3 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+        <div className="p-2.5 sm:p-3 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-1.5">
             <input
               type="file"
@@ -239,8 +271,8 @@ export default function ClientDirectoryModal({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-blue-400 text-slate-700 hover:text-blue-600 rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
-              title="Importa da Google Contacts"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-blue-400 text-slate-700 hover:text-blue-600 rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
+              title="Importa file contatti esportato da Google Contatti (CSV o vCard .vcf)"
             >
               <Upload className="w-3.5 h-3.5 text-blue-600" />
               <span>Importa Google</span>
@@ -251,7 +283,7 @@ export default function ClientDirectoryModal({
                 type="button"
                 onClick={handleNativeContactPicker}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition cursor-pointer"
-                title="Seleziona dalla rubrica del telefono"
+                title="Seleziona dalla rubrica dello smartphone"
               >
                 <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Rubrica Telefono</span>
@@ -260,6 +292,7 @@ export default function ClientDirectoryModal({
           </div>
 
           <button
+            type="button"
             onClick={() => {
               setIsAddingNew(true)
               setEditingClient(null)
@@ -274,9 +307,9 @@ export default function ClientDirectoryModal({
 
         {/* Form Aggiunta/Modifica */}
         {isAddingNew && (
-          <form onSubmit={handleSubmit} className="p-4 bg-blue-50/50 border-b border-blue-100 space-y-3">
-            <h3 className="text-xs font-bold text-blue-900 uppercase">
-              {editingClient ? 'Modifica Cliente' : 'Nuovo Cliente'}
+          <form onSubmit={handleSubmit} className="p-3.5 bg-blue-50/60 border-b border-blue-100 space-y-2.5 shrink-0">
+            <h3 className="text-xs font-bold text-blue-900 uppercase tracking-wide">
+              {editingClient ? 'Modifica Scheda Cliente' : 'Nuovo Cliente'}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input
@@ -285,31 +318,31 @@ export default function ClientDirectoryModal({
                 placeholder="Nome e Cognome *"
                 value={clientForm.name}
                 onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="tel"
-                placeholder="Telefono WhatsApp"
+                placeholder="Numero Telefono WhatsApp"
                 value={clientForm.phone}
                 onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <input
               type="text"
-              placeholder="Note sul cliente (es. preferenze orari)..."
+              placeholder="Note o preferenze sul cliente..."
               value={clientForm.notes}
               onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
-              className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => {
                   setIsAddingNew(false)
                   setEditingClient(null)
                 }}
-                className="text-xs px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-200 transition"
+                className="text-xs px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-200 transition cursor-pointer"
               >
                 Annulla
               </button>
@@ -317,40 +350,71 @@ export default function ClientDirectoryModal({
                 type="submit"
                 className="text-xs px-4 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition cursor-pointer"
               >
-                Salva
+                Salva Cliente
               </button>
             </div>
           </form>
         )}
 
         {/* Barra di ricerca */}
-        <div className="p-3 border-b border-slate-100">
+        <div className="p-2.5 sm:p-3 border-b border-slate-100 shrink-0">
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Cerca cliente per nome o numero..."
+              placeholder="Cerca cliente per nome o telefono..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-xs pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs pl-8 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50"
             />
           </div>
         </div>
 
         {/* CONTENITORE PRINCIPALE: LISTA CONTATTI + LINEA DI SCORRIMENTO ALFABETICO */}
-        <div className="flex-1 flex overflow-hidden relative">
-          {/* 1. Lista Clienti con Scrollbar visibile */}
+        <div className="flex-1 min-h-0 flex overflow-hidden relative bg-white">
+          {/* 1. Lista Clienti con Scrollbar visibile e fluida */}
           <div
             ref={listContainerRef}
-            className="flex-1 overflow-y-scroll p-4 space-y-4 scroll-smooth"
+            className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-4"
             style={{
+              WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'thin',
               scrollbarColor: '#94a3b8 #f1f5f9'
             }}
           >
             {sortedAndFiltered.length === 0 ? (
-              <div className="text-center py-12 text-xs text-slate-400">
-                Nessun cliente trovato. Usa <strong>"Importa Google"</strong> per caricare la tua rubrica!
+              <div className="text-center py-12 px-4 flex flex-col items-center justify-center">
+                <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3">
+                  <User className="w-7 h-7" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800 mb-1">
+                  {search ? 'Nessun cliente corrisponde alla ricerca' : 'Nessun cliente in rubrica'}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-xs mb-4">
+                  {search
+                    ? 'Prova a cercare un nome o numero diverso.'
+                    : 'I clienti salvati sul PC o inseriti negli appuntamenti compaiono qui. Puoi anche importarli da Google o aggiungerli ora.'}
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingNew(true)
+                      setEditingClient(null)
+                      setClientForm({ name: '', phone: '', notes: '' })
+                    }}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                  >
+                    ➕ Aggiungi Nuovo Cliente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
+                  >
+                    📥 Importa da Google
+                  </button>
+                </div>
               </div>
             ) : (
               Object.keys(groupedClients)
@@ -358,7 +422,7 @@ export default function ClientDirectoryModal({
                 .map((letter) => (
                   <div key={letter} id={`section-letter-${letter}`} className="space-y-1.5">
                     {/* Header Lettera Alfabetica Sticky */}
-                    <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xs py-1 border-b border-slate-200/80 flex items-center justify-between">
+                    <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xs py-1 border-b border-slate-200 flex items-center justify-between">
                       <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
                         {letter}
                       </span>
@@ -374,24 +438,26 @@ export default function ClientDirectoryModal({
                         const count = getClientAppCount(client.name)
                         return (
                           <div
-                            key={client.id}
+                            key={client.id || client.name}
                             onClick={() => {
-                              onNewAppointmentWithClient(client)
-                              onClose()
+                              if (onNewAppointmentWithClient) {
+                                onNewAppointmentWithClient(client)
+                                onClose()
+                              }
                             }}
-                            className="p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 bg-white transition flex items-center justify-between gap-2 group cursor-pointer shadow-2xs hover:shadow-xs"
+                            className="p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 bg-white transition flex items-center justify-between gap-2 group cursor-pointer shadow-2xs hover:shadow-xs"
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition truncate">
-                                  {client.name}
+                                  {client.name || 'Senza Nome'}
                                 </h4>
                                 <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-semibold shrink-0 group-hover:bg-blue-600 group-hover:text-white transition">
                                   Seleziona ➜
                                 </span>
                               </div>
 
-                              <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+                              <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 flex-wrap">
                                 {client.phone && <span>📞 {client.phone}</span>}
                                 {count > 0 && (
                                   <span className="text-[11px] bg-slate-100 px-1.5 py-0.2 rounded text-slate-600">
@@ -417,12 +483,12 @@ export default function ClientDirectoryModal({
                                 <a
                                   href={getWhatsAppUrl(
                                     client.phone,
-                                    `Gentile ${client.name}, le scriviamo per...`
+                                    `Gentile ${client.name || 'Cliente'}, le scriviamo per...`
                                   )}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
-                                  title="Invia WhatsApp"
+                                  title="Invia messaggio WhatsApp"
                                 >
                                   <MessageCircle className="w-4 h-4" />
                                 </a>
@@ -442,7 +508,7 @@ export default function ClientDirectoryModal({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (confirm(`Eliminare ${client.name} dalla rubrica?`)) {
+                                  if (confirm(`Eliminare ${client.name || 'questo cliente'} dalla rubrica?`)) {
                                     onDeleteClient(client.id)
                                   }
                                 }}
@@ -463,7 +529,7 @@ export default function ClientDirectoryModal({
 
           {/* 2. LA LINEA DI SCORRIMENTO ALFABETICA LATERALE (A-Z Fast Index Slider) */}
           <div
-            className="w-7 sm:w-8 py-2 bg-slate-50/80 border-l border-slate-100 flex flex-col items-center justify-between select-none shrink-0"
+            className="w-7 sm:w-8 py-2 bg-slate-50 border-l border-slate-100 flex flex-col items-center justify-between select-none shrink-0"
             style={{ touchAction: 'none' }}
           >
             {ALPHABET.map((char) => {
@@ -474,9 +540,9 @@ export default function ClientDirectoryModal({
                   type="button"
                   onClick={() => hasContacts && scrollToLetter(char)}
                   disabled={!hasContacts}
-                  className={`w-5 h-4 sm:w-6 sm:h-4 text-[10px] sm:text-[11px] font-bold rounded-sm flex items-center justify-center transition cursor-pointer ${
+                  className={`w-5 h-3.5 sm:w-6 sm:h-4 text-[10px] sm:text-[11px] font-bold rounded-sm flex items-center justify-center transition ${
                     hasContacts
-                      ? 'text-blue-600 hover:bg-blue-600 hover:text-white active:scale-125'
+                      ? 'text-blue-600 hover:bg-blue-600 hover:text-white active:scale-125 cursor-pointer font-black'
                       : 'text-slate-300 opacity-40 cursor-default'
                   }`}
                   title={hasContacts ? `Vai alla lettera ${char}` : `Nessun contatto con ${char}`}
@@ -489,9 +555,9 @@ export default function ClientDirectoryModal({
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[11px] text-slate-400">
-            {sortedAndFiltered.length} contatti • Tocca una lettera a destra per saltare
+        <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+          <span className="text-[11px] text-slate-500">
+            {sortedAndFiltered.length} {sortedAndFiltered.length === 1 ? 'contatto' : 'contatti'} • Seleziona una lettera a destra per saltare
           </span>
           <button
             type="button"
