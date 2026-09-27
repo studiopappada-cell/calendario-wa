@@ -193,7 +193,7 @@ export default function AppointmentModal({
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
   }
 
-  const handleSubmit = (e, andSendWhatsApp = false) => {
+  const handleSubmit = (e, andSendWhatsApp = false, andSendOwnerAlert = false) => {
     if (e && e.preventDefault) e.preventDefault()
     setFormError('')
 
@@ -216,6 +216,11 @@ export default function AppointmentModal({
       return
     }
 
+    if (andSendOwnerAlert && !ownerPhone.trim()) {
+      setFormError('Inserisci il tuo numero di cellulare nel riquadro dell\'alert per ricevere l\'avviso su WhatsApp!')
+      return
+    }
+
     const payload = {
       ...formData,
       id: formData.id || 'app_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
@@ -231,6 +236,13 @@ export default function AppointmentModal({
     }
 
     const saved = onSave(payload)
+
+    // Se richiesta apertura alert WhatsApp per se stessi
+    if (andSendOwnerAlert && ownerPhone.trim()) {
+      const daysLeft = getDaysUntilAppointment(payload.date)
+      const url = buildOwnerAlertLink(ownerPhone.trim(), payload, daysLeft)
+      window.open(url, '_blank')
+    }
 
     if (andSendWhatsApp && onOpenWhatsApp) {
       onOpenWhatsApp(saved || payload)
@@ -638,6 +650,19 @@ export default function AppointmentModal({
             >
               Annulla
             </button>
+
+            {/* Salva & Invia Alert al Mio WhatsApp */}
+            {formData.reminderAlert && formData.reminderAlert !== 'none' && (
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, false, true)}
+                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 rounded-xl shadow-xs transition cursor-pointer"
+                title="Salva l'appuntamento e invia subito l'alert promemoria al tuo WhatsApp"
+              >
+                <Bell className="w-3.5 h-3.5 text-amber-950" />
+                <span>Salva & Mio Alert</span>
+              </button>
+            )}
 
             {/* Salva & Invia subito WhatsApp */}
             <button
