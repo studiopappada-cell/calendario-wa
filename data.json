@@ -25,19 +25,6 @@
       "price": "",
       "notes": "",
       "reminderAlert": "today"
-    },
-    {
-      "clientName": "Raffaele Pappada",
-      "clientPhone": "3911166240",
-      "service": "Consulenza",
-      "date": "2026-09-27",
-      "time": "10:00",
-      "duration": 60,
-      "status": "confirmed",
-      "price": "",
-      "notes": "",
-      "reminderAlert": "today",
-      "id": "app_1790527468214_cibb"
     }
   ],
   "clients": [
@@ -86,7 +73,8 @@
     "ownerPhone": "3911166240"
   },
   "deletedAppIds": [
-    "demo-1"
+    "demo-1",
+    "app_1790527468214_cibb"
   ],
   "deletedClientIds": []
 }
