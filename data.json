@@ -35,12 +35,6 @@
       "notes": "Cliente abituale"
     },
     {
-      "id": "c2",
-      "name": "Laura Bianchi",
-      "phone": "3389876543",
-      "notes": "Preferisce il pomeriggio"
-    },
-    {
       "id": "c_1790525420050",
       "name": "Raffaele Pappada",
       "phone": "3911166240",
@@ -74,6 +68,7 @@
     "app_1790527973886_4r6o"
   ],
   "deletedClientIds": [
-    "c3"
+    "c3",
+    "c2"
   ]
 }
