@@ -51,6 +51,19 @@
       "notes": "",
       "reminderAlert": "today",
       "id": "app_1790528484779_6hld"
+    },
+    {
+      "clientName": "Marco Rossi",
+      "clientPhone": "3471234567",
+      "service": "Consulenza",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "Cliente abituale",
+      "reminderAlert": "today",
+      "id": "app_1790528823866_1rd1"
     }
   ],
   "clients": [
