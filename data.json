@@ -1,19 +1,6 @@
 {
   "appointments": [
     {
-      "id": "demo-1",
-      "clientName": "Marco Rossi",
-      "clientPhone": "3471234567",
-      "service": "Consulenza Strategica",
-      "date": "2026-09-27",
-      "time": "10:00",
-      "duration": 60,
-      "status": "confirmed",
-      "price": 80,
-      "notes": "Primo incontro di presentazione progetto.",
-      "createdAt": "2026-09-27T15:46:45.202Z"
-    },
-    {
       "clientName": "Raffaele Pappada",
       "clientPhone": "3911166240",
       "service": "Visita",
@@ -89,5 +76,9 @@
       "syncCode": "",
       "lastSync": null
     }
-  }
+  },
+  "deletedAppIds": [
+    "demo-1"
+  ],
+  "deletedClientIds": []
 }
