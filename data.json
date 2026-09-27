@@ -11,19 +11,6 @@
       "price": "",
       "notes": "visita amplifon",
       "id": "app_1790524062868_9g3u"
-    },
-    {
-      "id": "demo-3",
-      "clientName": "Giuseppe Verdi",
-      "clientPhone": "3201122334",
-      "service": "Revisione Documenti",
-      "date": "2026-09-29",
-      "time": "11:00",
-      "duration": 30,
-      "status": "confirmed",
-      "price": 40,
-      "notes": "Portare copia della documentazione cartacea.",
-      "createdAt": "2026-09-27T15:46:45.203Z"
     }
   ],
   "clients": [
@@ -66,7 +53,8 @@
   },
   "deletedAppIds": [
     "demo-1",
-    "demo-2"
+    "demo-2",
+    "demo-3"
   ],
   "deletedClientIds": []
 }
