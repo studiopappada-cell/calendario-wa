@@ -1,0 +1,35 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="waGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#25D366" />
+      <stop offset="100%" stop-color="#128C7E" />
+    </linearGradient>
+  </defs>
+  <!-- Background icon shape -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <!-- Calendar Body -->
+  <rect x="86" y="116" width="340" height="310" rx="32" fill="#ffffff" filter="drop-shadow(0 12px 24px rgba(0,0,0,0.15))"/>
+  <!-- Calendar Header Bar -->
+  <path d="M 86 148 C 86 130 100 116 118 116 L 394 116 C 412 116 426 130 426 148 L 426 186 L 86 186 Z" fill="#ef4444" />
+  <!-- Rings -->
+  <rect x="156" y="86" width="24" height="60" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="4"/>
+  <rect x="332" y="86" width="24" height="60" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="4"/>
+  <!-- Calendar Grid Dots -->
+  <circle cx="160" cy="240" r="14" fill="#cbd5e1"/>
+  <circle cx="224" cy="240" r="14" fill="#cbd5e1"/>
+  <circle cx="288" cy="240" r="14" fill="#cbd5e1"/>
+  <circle cx="352" cy="240" r="14" fill="#cbd5e1"/>
+  <circle cx="160" cy="304" r="14" fill="#cbd5e1"/>
+  <circle cx="224" cy="304" r="14" fill="#2563eb"/>
+  <circle cx="288" cy="304" r="14" fill="#cbd5e1"/>
+  <circle cx="352" cy="304" r="14" fill="#cbd5e1"/>
+  <!-- WhatsApp Badge in lower-right -->
+  <circle cx="370" cy="370" r="85" fill="#ffffff" filter="drop-shadow(0 8px 16px rgba(0,0,0,0.25))"/>
+  <circle cx="370" cy="370" r="75" fill="url(#waGrad)"/>
+  <!-- Phone inside badge -->
+  <path d="M 370 320 C 342.4 320 320 342.4 320 370 C 320 378.8 322.3 387.1 326.3 394.3 L 322.2 411.2 L 340 405.3 C 348.8 410.8 359 414 370 414 C 397.6 414 420 391.6 420 364 C 420 336.4 397.6 320 370 320 Z M 392.5 385.5 C 391.5 388.2 387.6 390.6 384.5 391.2 C 382.4 391.6 379.6 391.9 370.4 388.1 C 358.7 383.2 351.1 371.3 350.5 370.5 C 349.9 369.7 345.8 364.3 345.8 358.6 C 345.8 353 348.7 350.2 349.9 349 C 350.8 348.1 352.4 347.6 353.7 347.6 C 354.7 347.6 355.6 347.7 356.4 347.7 C 357.6 347.8 358.2 347.9 359.1 349.9 C 360.2 352.6 362.8 359 363.1 359.7 C 363.5 360.4 363.7 361.3 363.2 362.4 C 362.7 363.5 362.3 364.1 361.5 365.1 C 360.7 366.1 359.8 367.2 361.2 369.6 C 362.6 372 367.4 379.8 374.5 386.1 C 383.7 394.3 388.3 392.9 390.9 389.9 C 392.6 387.9 393.7 385.6 392.5 385.5 Z" fill="#ffffff"/>
+</svg>

@@ -1,0 +1,16 @@
+﻿{
+  "short_name": "Calendario WA",
+  "name": "Agenda & Calendario con Promemoria WhatsApp",
+  "icons": [
+    {
+      "src": "calendar-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}
