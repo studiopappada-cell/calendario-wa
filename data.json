@@ -1,19 +1,5 @@
 {
-  "appointments": [
-    {
-      "id": "demo-2",
-      "clientName": "Laura Bianchi",
-      "clientPhone": "3389876543",
-      "service": "Trattamento / Servizio",
-      "date": "2026-09-28",
-      "time": "15:30",
-      "duration": 45,
-      "status": "pending",
-      "price": 50,
-      "notes": "Richiesta conferma via WhatsApp.",
-      "createdAt": "2026-09-27T13:03:09.447Z"
-    }
-  ],
+  "appointments": [],
   "clients": [
     {
       "id": "c_1790515179383",
