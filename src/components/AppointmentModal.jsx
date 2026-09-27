@@ -237,12 +237,13 @@ export default function AppointmentModal({
 
     const saved = onSave(payload)
 
-    // Se richiesta attivazione allarme automatico sul telefono
+    // Se richiesta attivazione allarme automatico, apre direttamente Google Calendar senza scaricare file
     if (andSendOwnerAlert) {
       try {
-        downloadICalendar(payload)
+        const gcalUrl = getGoogleCalendarLink(payload)
+        window.open(gcalUrl, '_blank')
       } catch (e) {
-        console.warn('Errore download iCal:', e)
+        console.warn('Errore apertura Google Calendar:', e)
       }
     }
 
@@ -653,16 +654,16 @@ export default function AppointmentModal({
               Annulla
             </button>
 
-            {/* Salva & Attiva Allarme Automatico sul Telefono */}
+            {/* Salva & Sveglia Google Calendar sul Telefono */}
             {formData.reminderAlert && formData.reminderAlert !== 'none' && (
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, false, true)}
                 className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 rounded-xl shadow-xs transition cursor-pointer"
-                title="Salva l'appuntamento e programma l'allarme/notifica automatica sul calendario del tuo smartphone"
+                title="Salva l'appuntamento e apre direttamente Google Calendar per attivare la sveglia automatica sul tuo cellulare senza scaricare file!"
               >
-                <BellRing className="w-3.5 h-3.5 text-amber-950" />
-                <span>Salva & Allarme Telefono</span>
+                <Calendar className="w-3.5 h-3.5 text-amber-950" />
+                <span>Salva & Sveglia Google Calendar</span>
               </button>
             )}
 
