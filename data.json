@@ -77,12 +77,6 @@
       "notes": ""
     },
     {
-      "id": "gcontact_1790532820877_kqr7i",
-      "name": "Della Corte Antonio",
-      "phone": "+393898338672",
-      "notes": ""
-    },
-    {
       "id": "gcontact_1790532820877_zbnsh",
       "name": "Domenico Carucci",
       "phone": "3385237402",
@@ -207,5 +201,7 @@
   "deletedAppIds": [
     "demo-1"
   ],
-  "deletedClientIds": []
+  "deletedClientIds": [
+    "gcontact_1790532820877_kqr7i"
+  ]
 }
