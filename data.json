@@ -24,7 +24,7 @@
       "status": "confirmed",
       "price": 80,
       "notes": "Primo incontro di presentazione progetto.",
-      "createdAt": "2026-09-27T16:51:48.327Z"
+      "createdAt": "2026-09-27T17:00:00.484Z"
     },
     {
       "clientName": "Raffaele Pappada",
@@ -38,6 +38,19 @@
       "notes": "",
       "reminderAlert": "today",
       "id": "app_1790527973886_4r6o"
+    },
+    {
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Consulenza",
+      "date": "2026-09-28",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "today",
+      "id": "app_1790528484779_6hld"
     }
   ],
   "clients": [
