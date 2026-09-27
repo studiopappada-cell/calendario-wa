@@ -11,7 +11,7 @@
       "status": "pending",
       "price": "",
       "notes": "visita amplifon",
-      "reminderAlert": "1d"
+      "reminderAlert": "today"
     },
     {
       "id": "app_1790531025179_pjdm",
@@ -25,6 +25,71 @@
       "price": "",
       "notes": "fare richiesta al GdP di Trebisacce di trattazione scritta",
       "reminderAlert": "today"
+    },
+    {
+      "id": "demo-1",
+      "clientName": "Marco Rossi",
+      "clientPhone": "3471234567",
+      "service": "Consulenza Strategica",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": 80,
+      "notes": "Primo incontro di presentazione progetto.",
+      "createdAt": "2026-09-27T17:28:10.669Z"
+    },
+    {
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Visita",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "today",
+      "id": "app_1790527973886_4r6o"
+    },
+    {
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Consulenza",
+      "date": "2026-09-28",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "today",
+      "id": "app_1790528484779_6hld"
+    },
+    {
+      "clientName": "Marco Rossi",
+      "clientPhone": "3471234567",
+      "service": "Consulenza",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "Cliente abituale",
+      "reminderAlert": "today",
+      "id": "app_1790528823866_1rd1"
+    },
+    {
+      "clientName": "Giuseppe Verdi",
+      "clientPhone": "3201122334",
+      "service": "Consulenza",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "today",
+      "id": "app_1790530116065_96af"
     }
   ],
   "clients": [
@@ -71,5 +136,7 @@
       "syncCode": "",
       "lastSync": null
     }
-  }
+  },
+  "deletedAppIds": [],
+  "deletedClientIds": []
 }
