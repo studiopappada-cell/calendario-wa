@@ -12,6 +12,19 @@
       "price": "",
       "notes": "visita amplifon",
       "reminderAlert": "today"
+    },
+    {
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Controllo",
+      "date": "2026-09-28",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "fare richiesta al GdP di Trebisacce di trattazione scritta",
+      "reminderAlert": "today",
+      "id": "app_1790531025179_pjdm"
     }
   ],
   "clients": [
@@ -58,14 +71,5 @@
       "syncCode": "",
       "lastSync": null
     }
-  },
-  "deletedAppIds": [
-    "demo-1",
-    "app_1790527973886_4r6o",
-    "app_1790528823866_1rd1",
-    "app_1790530116065_96af",
-    "app_1790530844953_02kt",
-    "app_1790528484779_6hld"
-  ],
-  "deletedClientIds": []
+  }
 }
