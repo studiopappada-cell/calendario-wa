@@ -37,153 +37,22 @@
       "price": "",
       "notes": "visita amplifon",
       "id": "app_1790524062868_9g3u"
+    },
+    {
+      "id": "demo-3",
+      "clientName": "Giuseppe Verdi",
+      "clientPhone": "3201122334",
+      "service": "Revisione Documenti",
+      "date": "2026-09-29",
+      "time": "11:00",
+      "duration": 30,
+      "status": "confirmed",
+      "price": 40,
+      "notes": "Portare copia della documentazione cartacea.",
+      "createdAt": "2026-09-27T15:46:45.203Z"
     }
   ],
   "clients": [
-    {
-      "id": "c_1790515179383",
-      "name": "angelo della porta",
-      "phone": "3386907870",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790516164782_mv8qu",
-      "name": "Pierpaolo Di castri",
-      "phone": "",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517113719_tfsiz",
-      "name": "Zia Rosaria",
-      "phone": "3933277313",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517126712_6l8z9",
-      "name": "Leuzzi Stefano",
-      "phone": "+393270588225",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517151410_itfbx",
-      "name": "Raffaello Angelo",
-      "phone": "+393518123208",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517169266_w3lm7",
-      "name": "Giovanni di Noi",
-      "phone": "3384161354",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517180209_njhg0",
-      "name": "Giovanni Andriulo",
-      "phone": "",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517192088_w4a3r",
-      "name": "Francesco Galiano",
-      "phone": "+393357478129",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517202374_qvheh",
-      "name": "Giuseppe Fusco",
-      "phone": "3356930871",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517213566_imbyk",
-      "name": "Giuseppe di Palmo",
-      "phone": "+393283081005",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517224845_0pvnx",
-      "name": "Marialuigia Colombo",
-      "phone": "",
-      "notes": "Photo: https\\://lh6.googleusercontent.com/-r8e7Kym2jww/WmT0B7dWz1I/AAA"
-    },
-    {
-      "id": "gcontact_1790517249922_e0jif",
-      "name": "Pasquale Leone",
-      "phone": "+393803468835",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517262611_9yrqa",
-      "name": "Cosimo Argentina",
-      "phone": "+393898338711",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517274961_rzbb8",
-      "name": "Mario Passaro",
-      "phone": "+393474769007",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517290764_sc7sz",
-      "name": "Capobiancogiovanni",
-      "phone": "",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517301532_grh3t",
-      "name": "Giulia Vacca",
-      "phone": "+393884511008",
-      "notes": "Photo: https\\://lh5.googleusercontent.com/-DuLwaGeez6Y/W585ALGR3AI/AAA"
-    },
-    {
-      "id": "gcontact_1790517319352_h7ce7",
-      "name": "Filomena Montanaro",
-      "phone": "+393933088771",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517333041_v5uir",
-      "name": "Dott. Pietro della Porta",
-      "phone": "+393405446850",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517349804_pmzu9",
-      "name": "dellaportaangelo@libero.it",
-      "phone": "+393386907870",
-      "notes": "Photo: https\\://lh4.googleusercontent.com/-4tUtArqQdSg/W586jChwWCI/AAA"
-    },
-    {
-      "id": "gcontact_1790517360983_bzid7",
-      "name": "Enrico Truppi",
-      "phone": "+393923330771",
-      "notes": "Photo: https\\://lh5.googleusercontent.com/-su1R_zczo1I/W586GqCXO_I/AAA"
-    },
-    {
-      "id": "gcontact_1790517372156_k9ii8",
-      "name": "Enzo Di Punzio",
-      "phone": "3337716129",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517384116_urp6h",
-      "name": "Della Corte Antonio",
-      "phone": "+393898338672",
-      "notes": ""
-    },
-    {
-      "id": "gcontact_1790517396898_a02wj",
-      "name": "Domenico Carucci",
-      "phone": "3385237402",
-      "notes": "Photo: https\\://lh4.googleusercontent.com/-lAATjWJDylU/WmTz9SSCHxI/AAA"
-    },
-    {
-      "id": "c_1790517870050",
-      "name": "Raffaele Pappada",
-      "phone": "3911166240",
-      "notes": ""
-    },
     {
       "id": "c1",
       "name": "Marco Rossi",
