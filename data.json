@@ -25,6 +25,19 @@
       "price": "",
       "notes": "fare richiesta al GdP di Trebisacce di trattazione scritta",
       "reminderAlert": "today"
+    },
+    {
+      "id": "demo-1",
+      "clientName": "Marco Rossi",
+      "clientPhone": "3471234567",
+      "service": "Consulenza Strategica",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": 80,
+      "notes": "Primo incontro di presentazione progetto.",
+      "createdAt": "2026-09-27T18:13:10.156Z"
     }
   ],
   "clients": [
@@ -39,15 +52,33 @@
       "name": "Marialuigia Colombo",
       "phone": "",
       "notes": "Photo: https\\://lh6.googleusercontent.com/-r8e7Kym2jww/WmT0B7dWz1I/AAA"
+    },
+    {
+      "id": "c1",
+      "name": "Marco Rossi",
+      "phone": "3471234567",
+      "notes": "Cliente abituale"
+    },
+    {
+      "id": "c2",
+      "name": "Laura Bianchi",
+      "phone": "3389876543",
+      "notes": "Preferisce il pomeriggio"
+    },
+    {
+      "id": "c3",
+      "name": "Giuseppe Verdi",
+      "phone": "3201122334",
+      "notes": ""
     }
   ],
   "settings": {
     "businessName": "Il Mio Studio",
     "businessPhone": "",
     "businessAddress": "Via Roma, 1",
-    "defaultPrefix": "+3966240",
+    "defaultPrefix": "+39",
     "defaultDuration": 60,
-    "ownerPhone": "3911166240",
+    "ownerPhone": "",
     "templates": {
       "reminder": "Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci. Buona giornata!",
       "confirmation": "Gentile {nome}, Le chiediamo gentile conferma per il Suo appuntamento di *{servizio}* fissato per il giorno *{data}* alle ore *{ora}*. Può confermare semplicemente rispondendo a questo messaggio. A presto!",
@@ -59,5 +90,7 @@
       "syncCode": "",
       "lastSync": null
     }
-  }
+  },
+  "deletedAppIds": [],
+  "deletedClientIds": []
 }
