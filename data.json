@@ -12,19 +12,6 @@
       "price": "",
       "notes": "visita amplifon",
       "reminderAlert": "1d"
-    },
-    {
-      "id": "app_1790526869658_n54v",
-      "clientName": "Raffaele Pappada",
-      "clientPhone": "3911166240",
-      "service": "Visita",
-      "date": "2026-09-27",
-      "time": "18:45",
-      "duration": 60,
-      "status": "confirmed",
-      "price": "",
-      "notes": "",
-      "reminderAlert": "today"
     }
   ],
   "clients": [
@@ -74,7 +61,8 @@
   },
   "deletedAppIds": [
     "demo-1",
-    "app_1790527468214_cibb"
+    "app_1790527468214_cibb",
+    "app_1790526869658_n54v"
   ],
   "deletedClientIds": []
 }
