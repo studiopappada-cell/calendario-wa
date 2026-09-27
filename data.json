@@ -1,1 +1,81 @@
-{"appointments":[],"clients":[],"updatedAt":"2026-09-27T13:00:00Z"}
+{
+  "appointments": [
+    {
+      "id": "demo-1",
+      "clientName": "Marco Rossi",
+      "clientPhone": "3471234567",
+      "service": "Consulenza Strategica",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": 80,
+      "notes": "Primo incontro di presentazione progetto.",
+      "createdAt": "2026-09-27T13:03:09.447Z"
+    },
+    {
+      "id": "demo-2",
+      "clientName": "Laura Bianchi",
+      "clientPhone": "3389876543",
+      "service": "Trattamento / Servizio",
+      "date": "2026-09-28",
+      "time": "15:30",
+      "duration": 45,
+      "status": "pending",
+      "price": 50,
+      "notes": "Richiesta conferma via WhatsApp.",
+      "createdAt": "2026-09-27T13:03:09.447Z"
+    },
+    {
+      "id": "demo-3",
+      "clientName": "Giuseppe Verdi",
+      "clientPhone": "3201122334",
+      "service": "Revisione Documenti",
+      "date": "2026-09-29",
+      "time": "11:00",
+      "duration": 30,
+      "status": "confirmed",
+      "price": 40,
+      "notes": "Portare copia della documentazione cartacea.",
+      "createdAt": "2026-09-27T13:03:09.447Z"
+    }
+  ],
+  "clients": [
+    {
+      "id": "c1",
+      "name": "Marco Rossi",
+      "phone": "3471234567",
+      "notes": "Cliente abituale"
+    },
+    {
+      "id": "c2",
+      "name": "Laura Bianchi",
+      "phone": "3389876543",
+      "notes": "Preferisce il pomeriggio"
+    },
+    {
+      "id": "c3",
+      "name": "Giuseppe Verdi",
+      "phone": "3201122334",
+      "notes": ""
+    }
+  ],
+  "settings": {
+    "businessName": "Il Mio Studio",
+    "businessPhone": "",
+    "businessAddress": "Via Roma, 1",
+    "defaultPrefix": "+39",
+    "defaultDuration": 60,
+    "templates": {
+      "reminder": "Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci. Buona giornata!",
+      "confirmation": "Gentile {nome}, Le chiediamo gentile conferma per il Suo appuntamento di *{servizio}* fissato per il giorno *{data}* alle ore *{ora}*. Può confermare semplicemente rispondendo a questo messaggio. A presto!",
+      "thankyou": "Gentile {nome}, grazie per essere stato da noi oggi per *{servizio}*. Speriamo che l'esperienza sia stata di Suo gradimento. Buona continuazione!",
+      "custom": "Gentile {nome}, Le scriviamo in merito all'appuntamento del {data} alle {ora} ({servizio}). Cordiali saluti."
+    },
+    "cloudSync": {
+      "enabled": false,
+      "syncCode": "",
+      "lastSync": null
+    }
+  }
+}
