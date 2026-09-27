@@ -30,6 +30,7 @@ export const INITIAL_SETTINGS = {
   businessAddress: 'Via Roma, 1',
   defaultPrefix: '+39',
   defaultDuration: 60,
+  ownerPhone: '', // Numero di cellulare a cui inviare gli alert promemoria
   templates: {
     reminder: `Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci. Buona giornata!`,
     confirmation: `Gentile {nome}, Le chiediamo gentile conferma per il Suo appuntamento di *{servizio}* fissato per il giorno *{data}* alle ore *{ora}*. Può confermare semplicemente rispondendo a questo messaggio. A presto!`,
@@ -41,6 +42,22 @@ export const INITIAL_SETTINGS = {
     syncCode: '',
     lastSync: null
   }
+}
+
+// Recupera il numero di cellulare per ricevere gli alert
+export function loadOwnerPhone() {
+  try {
+    return localStorage.getItem('wa_owner_phone') || ''
+  } catch (e) {
+    return ''
+  }
+}
+
+// Salva il numero di cellulare per ricevere gli alert
+export function saveOwnerPhone(phone) {
+  try {
+    localStorage.setItem('wa_owner_phone', String(phone || '').trim())
+  } catch (e) {}
 }
 
 // Recupera l'elenco degli ID appuntamenti eliminati

@@ -15,9 +15,9 @@ import {
   Bell,
   BellRing
 } from 'lucide-react'
-import { formatDateItalian } from '../utils/whatsapp'
-import { getGoogleCalendarLink, downloadICalendar } from '../utils/storage'
-import { isAppointmentAlertDue, ALERT_OPTIONS } from '../utils/notifications'
+import { formatDateItalian, buildOwnerAlertLink } from '../utils/whatsapp'
+import { getGoogleCalendarLink, downloadICalendar, loadOwnerPhone } from '../utils/storage'
+import { isAppointmentAlertDue, ALERT_OPTIONS, getDaysUntilAppointment } from '../utils/notifications'
 
 export default function CalendarAgendaView({
   appointments = [],
@@ -279,6 +279,29 @@ export default function CalendarAgendaView({
                     >
                       .ICS
                     </button>
+
+                    {/* Alert WhatsApp Personale */}
+                    {app.reminderAlert && app.reminderAlert !== 'none' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const ownerPhone = loadOwnerPhone()
+                          if (!ownerPhone) {
+                            alert('Per ricevere gli avvisi sul tuo cellulare, apri Modifica Appuntamento e inserisci il tuo numero di telefono!')
+                            onEditAppointment(app)
+                            return
+                          }
+                          const daysLeft = getDaysUntilAppointment(app.date)
+                          const url = buildOwnerAlertLink(ownerPhone, app, daysLeft)
+                          window.open(url, '_blank')
+                        }}
+                        className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                        title="Invia subito questo promemoria al tuo numero di cellulare WhatsApp"
+                      >
+                        <Bell className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Mio Alert</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* IL TASTO PRINCIPALE WHATSAPP */}

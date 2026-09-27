@@ -15,9 +15,10 @@ import {
   Bell,
   Volume2
 } from 'lucide-react'
-import { exportDataAsJSON, importDataFromJSON } from '../utils/storage'
+import { exportDataAsJSON, importDataFromJSON, loadOwnerPhone, saveOwnerPhone } from '../utils/storage'
 import { generateRoomCode } from '../utils/cloudSync'
 import { triggerTestAlert } from '../utils/notifications'
+import { buildTestAlertWhatsAppLink } from '../utils/whatsapp'
 
 export default function SettingsModal({
   isOpen,
@@ -59,8 +60,30 @@ export default function SettingsModal({
     }))
   }
 
+  const [ownerPhone, setOwnerPhone] = useState(() => loadOwnerPhone() || settings.ownerPhone || '')
+
+  const handleOwnerPhoneChange = (val) => {
+    setOwnerPhone(val)
+    saveOwnerPhone(val)
+    setFormData((prev) => ({ ...prev, ownerPhone: val }))
+  }
+
+  const handleTestOwnerWhatsApp = () => {
+    const clean = ownerPhone.trim()
+    if (!clean) {
+      setTestAlertResult({
+        success: false,
+        message: 'Inserisci prima il tuo numero di cellulare per provare l\'alert su WhatsApp!'
+      })
+      return
+    }
+    const url = buildTestAlertWhatsAppLink(clean)
+    window.open(url, '_blank')
+  }
+
   const handleSave = () => {
-    onSaveSettings(formData)
+    saveOwnerPhone(ownerPhone)
+    onSaveSettings({ ...formData, ownerPhone })
     onClose()
   }
 
@@ -349,6 +372,40 @@ export default function SettingsModal({
                   <div className="p-2.5 bg-white rounded-xl border border-slate-200">
                     <strong className="text-emerald-700 block mb-0.5">🤖 Su Android (Chrome):</strong>
                     <span>Tocca i tre puntini in alto a destra e seleziona <strong>"Aggiungi a schermata Home"</strong> o <strong>"Installa app"</strong>.</span>
+                  </div>
+                </div>
+
+                {/* Box Configurazione Numero Cellulare Alert WhatsApp */}
+                <div className="mt-4 p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200/90 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-950">Il tuo Numero di Cellulare Personale</h4>
+                      <p className="text-[11px] text-emerald-800">
+                        Inserisci il tuo numero per ricevere gli alert promemoria sul tuo WhatsApp
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="tel"
+                      placeholder="Es. 3471234567"
+                      value={ownerPhone}
+                      onChange={(e) => handleOwnerPhoneChange(e.target.value)}
+                      className="flex-1 text-xs px-3.5 py-2.5 rounded-xl border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={handleTestOwnerWhatsApp}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Test WhatsApp</span>
+                    </button>
                   </div>
                 </div>
 

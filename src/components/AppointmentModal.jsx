@@ -14,9 +14,19 @@ import {
   AlertCircle,
   Bell,
   BellRing,
-  Volume2
+  Volume2,
+  MessageCircle,
+  Smartphone,
+  ExternalLink
 } from 'lucide-react'
-import { ALERT_OPTIONS, requestNotificationPermission, triggerTestAlert } from '../utils/notifications'
+import {
+  ALERT_OPTIONS,
+  requestNotificationPermission,
+  triggerTestAlert,
+  getDaysUntilAppointment
+} from '../utils/notifications'
+import { loadOwnerPhone, saveOwnerPhone } from '../utils/storage'
+import { buildOwnerAlertLink, buildTestAlertWhatsAppLink } from '../utils/whatsapp'
 
 const COMMON_SERVICES = [
   'Consulenza',
@@ -57,6 +67,13 @@ export default function AppointmentModal({
   const [testAlertInfo, setTestAlertInfo] = useState(null)
   const [isTesting, setIsTesting] = useState(false)
 
+  const [ownerPhone, setOwnerPhone] = useState(() => loadOwnerPhone())
+
+  const handleOwnerPhoneChange = (val) => {
+    setOwnerPhone(val)
+    saveOwnerPhone(val)
+  }
+
   const handleRunTestAlert = async () => {
     setIsTesting(true)
     setTestAlertInfo(null)
@@ -68,6 +85,35 @@ export default function AppointmentModal({
     } finally {
       setIsTesting(false)
     }
+  }
+
+  // Invia il test di alert direttamente al numero WhatsApp dell'utente
+  const handleTestOwnerWhatsApp = () => {
+    const clean = ownerPhone.trim()
+    if (!clean) {
+      setTestAlertInfo({
+        success: false,
+        message: 'Inserisci prima il tuo numero di cellulare nel riquadro sottostante!'
+      })
+      return
+    }
+    const url = buildTestAlertWhatsAppLink(clean)
+    window.open(url, '_blank')
+  }
+
+  // Invia l'alert di questo appuntamento sul WhatsApp dell'utente
+  const handleSendOwnerAppointmentAlert = () => {
+    const clean = ownerPhone.trim()
+    if (!clean) {
+      setTestAlertInfo({
+        success: false,
+        message: 'Inserisci prima il tuo numero di cellulare per ricevere l\'alert su WhatsApp!'
+      })
+      return
+    }
+    const daysLeft = getDaysUntilAppointment(formData.date)
+    const url = buildOwnerAlertLink(clean, formData, daysLeft)
+    window.open(url, '_blank')
   }
 
   // Clienti ordinati alfabeticamente A-Z per il richiamo rapido (null-safe)
@@ -501,6 +547,51 @@ export default function AppointmentModal({
                   </button>
                 )
               })}
+            </div>
+
+            {/* Configurazione Numero Cellulare Personale per Alert WhatsApp */}
+            <div className="pt-2.5 border-t border-amber-200/80 space-y-2">
+              <label className="text-xs font-bold text-amber-950 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-emerald-600" />
+                  <span>Il tuo numero di cellulare (dove ricevere l'alert):</span>
+                </span>
+                <span className="text-[10px] text-emerald-700 font-medium">Memorizzato</span>
+              </label>
+
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  placeholder="Es. 3471234567"
+                  value={ownerPhone}
+                  onChange={(e) => handleOwnerPhoneChange(e.target.value)}
+                  className="flex-1 text-xs px-3 py-2 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleTestOwnerWhatsApp}
+                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                  title="Invia subito un messaggio di prova al tuo WhatsApp"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Test WhatsApp</span>
+                </button>
+              </div>
+
+              {ownerPhone && (
+                <div className="flex items-center justify-between pt-1 text-[11px] bg-emerald-50/80 p-2 rounded-xl border border-emerald-200 text-emerald-900">
+                  <span>Invia riepilogo appuntamento a te stesso:</span>
+                  <button
+                    type="button"
+                    onClick={handleSendOwnerAppointmentAlert}
+                    className="font-bold text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Invia al Mio WhatsApp</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

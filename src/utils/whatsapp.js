@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Utility per la gestione dell'integrazione WhatsApp
  */
 
@@ -73,13 +73,41 @@ export function getWhatsAppUrl(phone, messageText, defaultPrefix = '+39') {
   return `https://wa.me/${cleanPhone}?text=${encodedText}`
 }
 
+// Genera link diretto per inviare l'alert promemoria al proprio numero WhatsApp personale
+export function buildOwnerAlertLink(ownerPhone, appointment, daysLeft) {
+  if (!ownerPhone || !appointment) return ''
+  const phoneFormatted = formatPhoneNumber(ownerPhone)
+  const dateFormatted = formatDateItalian(appointment.date)
+
+  let header = '🔔 *PROMEMORIA APPUNTAMENTO (ALERT)*'
+  if (daysLeft === 0) header = '🔔 *ALERT: APPUNTAMENTO PREVISTO OGGI!*'
+  else if (daysLeft === 1) header = '🔔 *ALERT: APPUNTAMENTO PREVISTO DOMANI!*'
+  else if (daysLeft > 1) header = `🔔 *ALERT: APPUNTAMENTO TRA ${daysLeft} GIORNI!*`
+
+  const msg = `${header}
+
+📅 *Data:* ${dateFormatted || appointment.date}
+⏰ *Orario:* ${appointment.time || ''} (${appointment.duration || 60} minuti)
+👤 *Cliente:* ${appointment.clientName || 'Cliente'}
+💼 *Servizio:* ${appointment.service || 'Consulenza'}
+${appointment.clientPhone ? `📞 *Tel. Cliente:* ${appointment.clientPhone}\n` : ''}${appointment.notes ? `📝 *Note:* ${appointment.notes}\n` : ''}
+_Promemoria generato da Agenda WhatsApp_`
+
+  return `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(msg)}`
+}
+
+// Genera link di test alert sul WhatsApp del proprio numero
+export function buildTestAlertWhatsAppLink(ownerPhone) {
+  if (!ownerPhone) return ''
+  const phoneFormatted = formatPhoneNumber(ownerPhone)
+  const msg = `🔔 *TEST ALERT WHATSAPP RIUSCITO!*\n\nCiao! Il tuo numero di cellulare è configurato correttamente nell'Agenda. Da adesso puoi ricevere tutti i promemoria e gli avvisi degli appuntamenti direttamente qui sul tuo WhatsApp!`
+  return `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(msg)}`
+}
+
 // Modelli di messaggio predefiniti
 export const DEFAULT_TEMPLATES = {
   reminder: `Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci con anticipo. Buona giornata!`,
-  
   confirmation: `Gentile {nome}, Le chiediamo gentile conferma per il Suo appuntamento di *{servizio}* previsto per il giorno *{data}* alle ore *{ora}*. Può confermare semplicemente rispondendo a questo messaggio. A presto!`,
-  
   thankyou: `Gentile {nome}, grazie per essere stato da noi oggi per *{servizio}*. Speriamo che l'esperienza sia stata all'altezza delle Sue aspettative. Per qualsiasi feedback o per fissare il prossimo incontro siamo a Sua completa disposizione!`,
-  
   custom: `Gentile {nome}, Le scriviamo in merito al Suo appuntamento del {data} alle {ora} ({servizio}). Restiamo a disposizione per qualsiasi chiarimento.`
 }
