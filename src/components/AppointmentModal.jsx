@@ -25,7 +25,7 @@ import {
   triggerTestAlert,
   getDaysUntilAppointment
 } from '../utils/notifications'
-import { loadOwnerPhone, saveOwnerPhone } from '../utils/storage'
+import { loadOwnerPhone, saveOwnerPhone, downloadICalendar, getGoogleCalendarLink } from '../utils/storage'
 import { buildOwnerAlertLink, buildTestAlertWhatsAppLink } from '../utils/whatsapp'
 
 const COMMON_SERVICES = [
@@ -237,11 +237,13 @@ export default function AppointmentModal({
 
     const saved = onSave(payload)
 
-    // Se richiesta apertura alert WhatsApp per se stessi
-    if (andSendOwnerAlert && ownerPhone.trim()) {
-      const daysLeft = getDaysUntilAppointment(payload.date)
-      const url = buildOwnerAlertLink(ownerPhone.trim(), payload, daysLeft)
-      window.open(url, '_blank')
+    // Se richiesta attivazione allarme automatico sul telefono
+    if (andSendOwnerAlert) {
+      try {
+        downloadICalendar(payload)
+      } catch (e) {
+        console.warn('Errore download iCal:', e)
+      }
     }
 
     if (andSendWhatsApp && onOpenWhatsApp) {
@@ -651,16 +653,16 @@ export default function AppointmentModal({
               Annulla
             </button>
 
-            {/* Salva & Invia Alert al Mio WhatsApp */}
+            {/* Salva & Attiva Allarme Automatico sul Telefono */}
             {formData.reminderAlert && formData.reminderAlert !== 'none' && (
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, false, true)}
                 className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 rounded-xl shadow-xs transition cursor-pointer"
-                title="Salva l'appuntamento e invia subito l'alert promemoria al tuo WhatsApp"
+                title="Salva l'appuntamento e programma l'allarme/notifica automatica sul calendario del tuo smartphone"
               >
-                <Bell className="w-3.5 h-3.5 text-amber-950" />
-                <span>Salva & Mio Alert</span>
+                <BellRing className="w-3.5 h-3.5 text-amber-950" />
+                <span>Salva & Allarme Telefono</span>
               </button>
             )}
 
