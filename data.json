@@ -53,17 +53,5 @@
       "syncCode": "",
       "lastSync": null
     }
-  },
-  "deletedAppIds": [
-    "demo-1",
-    "app_1790528823866_1rd1",
-    "app_1790530116065_96af",
-    "app_1790528484779_6hld",
-    "app_1790527973886_4r6o"
-  ],
-  "deletedClientIds": [
-    "c3",
-    "c2",
-    "c1"
-  ]
+  }
 }
