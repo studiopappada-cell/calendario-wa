@@ -12,6 +12,19 @@
       "price": "",
       "notes": "visita amplifon",
       "reminderAlert": "today"
+    },
+    {
+      "id": "demo-1",
+      "clientName": "Marco Rossi",
+      "clientPhone": "3471234567",
+      "service": "Consulenza Strategica",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": 80,
+      "notes": "Primo incontro di presentazione progetto.",
+      "createdAt": "2026-09-27T16:51:48.327Z"
     }
   ],
   "clients": [
@@ -44,8 +57,9 @@
     "businessName": "Il Mio Studio",
     "businessPhone": "",
     "businessAddress": "Via Roma, 1",
-    "defaultPrefix": "+3966240",
+    "defaultPrefix": "+39",
     "defaultDuration": 60,
+    "ownerPhone": "",
     "templates": {
       "reminder": "Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci. Buona giornata!",
       "confirmation": "Gentile {nome}, Le chiediamo gentile conferma per il Suo appuntamento di *{servizio}* fissato per il giorno *{data}* alle ore *{ora}*. Può confermare semplicemente rispondendo a questo messaggio. A presto!",
@@ -56,7 +70,8 @@
       "enabled": false,
       "syncCode": "",
       "lastSync": null
-    },
-    "ownerPhone": "3911166240"
-  }
+    }
+  },
+  "deletedAppIds": [],
+  "deletedClientIds": []
 }
