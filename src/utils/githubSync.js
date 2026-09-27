@@ -29,10 +29,13 @@ export function getSavedToken() {
       window.history.replaceState(null, '', window.location.pathname)
       return paramToken
     }
-    return localStorage.getItem('gh_sync_token') || ''
+    const saved = localStorage.getItem('gh_sync_token')
+    if (saved && saved.trim()) return saved.trim()
+    return ''
   } catch (e) {
     return ''
   }
+}
 }
 
 export function saveToken(t) {

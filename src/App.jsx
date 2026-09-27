@@ -22,6 +22,36 @@ import ClientDirectoryModal from './components/ClientDirectoryModal'
 import StatsModal from './components/StatsModal'
 import SettingsModal from './components/SettingsModal'
 
+// Merge intelligente: unisce le liste di appuntamenti senza perdere mai quelli locali
+function mergeAppointments(localList, incomingList) {
+  if (!Array.isArray(incomingList)) return localList || []
+  if (!Array.isArray(localList) || localList.length === 0) return incomingList
+
+  const map = new Map()
+  incomingList.forEach((item) => {
+    if (item && item.id) map.set(item.id, item)
+  })
+  localList.forEach((item) => {
+    if (item && item.id) map.set(item.id, item)
+  })
+  return Array.from(map.values())
+}
+
+// Merge clienti senza perdere quelli locali
+function mergeClients(localList, incomingList) {
+  if (!Array.isArray(incomingList)) return localList || []
+  if (!Array.isArray(localList) || localList.length === 0) return incomingList
+
+  const map = new Map()
+  incomingList.forEach((item) => {
+    if (item && item.id) map.set(item.id, item)
+  })
+  localList.forEach((item) => {
+    if (item && item.id) map.set(item.id, item)
+  })
+  return Array.from(map.values())
+}
+
 export default function App() {
   const [appointments, setAppointments] = useState(() => loadAppointments())
   const [settings, setSettings] = useState(() => loadSettings())
@@ -59,20 +89,21 @@ export default function App() {
         const cloudRes = await fetchCloudData()
         if (cloudRes.success && cloudRes.data) {
           const cloudData = cloudRes.data
-          // Se il cloud ha clienti o appuntamenti, sincronizziamoli
-          if (Array.isArray(cloudData.clients) && cloudData.clients.length > 0) {
-            setClients(cloudData.clients)
-            saveClients(cloudData.clients)
-          } else if (clients.length > 0) {
-            // Se il cloud non li ha ma noi li abbiamo in locale, inviamoli subito al cloud!
-            await pushCloudData({ appointments, clients, settings })
+          if (Array.isArray(cloudData.clients)) {
+            const currentClients = loadClients()
+            const mergedC = mergeClients(currentClients, cloudData.clients)
+            setClients(mergedC)
+            saveClients(mergedC)
           }
 
-          if (Array.isArray(cloudData.appointments) && cloudData.appointments.length > 0) {
-            setAppointments(cloudData.appointments)
-            saveAppointments(cloudData.appointments)
-          } else if (appointments.length > 0) {
-            await pushCloudData({ appointments, clients, settings })
+          if (Array.isArray(cloudData.appointments)) {
+            const currentApps = loadAppointments()
+            const mergedA = mergeAppointments(currentApps, cloudData.appointments)
+            setAppointments(mergedA)
+            saveAppointments(mergedA)
+            if (mergedA.length > cloudData.appointments.length) {
+              pushCloudData({ appointments: mergedA, clients: loadClients(), settings })
+            }
           }
 
           if (cloudData.settings) {
@@ -118,7 +149,7 @@ export default function App() {
     }
   }, [])
 
-  // Sincronizzazione automatica dal Cloud
+  // Sincronizzazione non distruttiva dal Cloud
   const handleTriggerSync = async (forcePush = false) => {
     setIsSyncing(true)
     setSyncStatus('syncing')
@@ -131,12 +162,18 @@ export default function App() {
         const res = await fetchCloudData()
         if (res.success && res.data) {
           if (Array.isArray(res.data.clients)) {
-            setClients(res.data.clients)
-            saveClients(res.data.clients)
+            const mergedClients = mergeClients(clients, res.data.clients)
+            setClients(mergedClients)
+            saveClients(mergedClients)
           }
           if (Array.isArray(res.data.appointments)) {
-            setAppointments(res.data.appointments)
-            saveAppointments(res.data.appointments)
+            const mergedApps = mergeAppointments(appointments, res.data.appointments)
+            setAppointments(mergedApps)
+            saveAppointments(mergedApps)
+            // Se in locale abbiamo più appuntamenti del cloud, sincronizziamo in salita
+            if (mergedApps.length > (res.data.appointments?.length || 0)) {
+              pushCloudData({ appointments: mergedApps, clients, settings })
+            }
           }
           if (res.data.settings) {
             setSettings(res.data.settings)
@@ -167,42 +204,70 @@ export default function App() {
     saveClients(clients)
   }, [clients])
 
-  // Creazione o Salvataggio Appuntamento
+  // Creazione o Salvataggio Appuntamento (immediato e a prova di errore)
   const handleSaveAppointment = (appData) => {
-    let updatedApps = []
-    const exists = appointments.some((a) => a.id === appData.id)
-
-    if (exists) {
-      updatedApps = appointments.map((a) => (a.id === appData.id ? appData : a))
-    } else {
-      updatedApps = [...appointments, appData]
-    }
-    setAppointments(updatedApps)
-
-    let updatedClients = [...clients]
-    // Se il cliente non è ancora in rubrica, aggiungilo automaticamente!
-    if (appData.clientName) {
-      const clientExists = clients.some(
-        (c) => c.name.toLowerCase() === appData.clientName.toLowerCase()
-      )
-      if (!clientExists) {
-        const newClient = {
-          id: 'c_' + Date.now(),
-          name: appData.clientName,
-          phone: appData.clientPhone || '',
-          notes: ''
-        }
-        updatedClients = [...clients, newClient]
-        setClients(updatedClients)
+    try {
+      const sanitizedApp = {
+        ...appData,
+        id: appData.id || 'app_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        clientName: String(appData.clientName || '').trim(),
+        clientPhone: String(appData.clientPhone || '').trim(),
+        service: String(appData.service || 'Consulenza').trim(),
+        date: String(appData.date || new Date().toISOString().split('T')[0]),
+        time: String(appData.time || '10:00'),
+        duration: Number(appData.duration || 60),
+        status: String(appData.status || 'confirmed'),
+        notes: String(appData.notes || '').trim()
       }
+
+      let updatedApps = []
+      const exists = appointments.some((a) => a.id === sanitizedApp.id)
+      if (exists) {
+        updatedApps = appointments.map((a) => (a.id === sanitizedApp.id ? sanitizedApp : a))
+      } else {
+        updatedApps = [...appointments, sanitizedApp]
+      }
+
+      // 1. Aggiorna lo stato React
+      setAppointments(updatedApps)
+      // 2. Salva immediatamente in LocalStorage del browser/telefono
+      saveAppointments(updatedApps)
+
+      let updatedClients = [...clients]
+      // 3. Se il cliente non è ancora in rubrica, aggiungilo in rubrica
+      if (sanitizedApp.clientName) {
+        const targetName = sanitizedApp.clientName.toLowerCase()
+        const clientExists = clients.some(
+          (c) => String(c?.name || '').toLowerCase() === targetName
+        )
+        if (!clientExists) {
+          const newClient = {
+            id: 'c_' + Date.now(),
+            name: sanitizedApp.clientName,
+            phone: sanitizedApp.clientPhone || '',
+            notes: ''
+          }
+          updatedClients = [...clients, newClient]
+          setClients(updatedClients)
+          saveClients(updatedClients)
+        }
+      }
+
+      // 4. Salva immediatamente nel Cloud GitHub con il token integrato
+      pushCloudData({ appointments: updatedApps, clients: updatedClients, settings })
+        .then((res) => {
+          if (res && res.success) {
+            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+            setSyncStatus('online')
+          }
+        })
+        .catch((err) => console.warn('Errore push cloud:', err))
+
+      return sanitizedApp
+    } catch (e) {
+      console.error('Errore durante handleSaveAppointment:', e)
+      return appData
     }
-
-    // Salva immediatamente nel Cloud GitHub!
-    pushCloudData({ appointments: updatedApps, clients: updatedClients, settings }).then(() => {
-      setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
-    })
-
-    return appData
   }
 
   // Eliminazione Appuntamento
