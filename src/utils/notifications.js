@@ -50,11 +50,11 @@ export async function requestNotificationPermission() {
 }
 
 // Invia una notifica nativa sul cellulare con suono e vibrazione
-export function showPhoneNotification(title, body, url) {
+export async function showPhoneNotification(title, body, url) {
   playNotificationSound()
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     try {
-      navigator.vibrate([200, 100, 200])
+      navigator.vibrate([300, 150, 300, 150, 300])
     } catch (e) {}
   }
 
@@ -64,24 +64,31 @@ export function showPhoneNotification(title, body, url) {
     try {
       const options = {
         body,
-        icon: '/calendario-wa/favicon.svg',
-        badge: '/calendario-wa/favicon.svg',
-        vibrate: [200, 100, 200],
+        icon: './calendar-icon.svg',
+        badge: './favicon.svg',
+        vibrate: [300, 150, 300, 150, 300],
         tag: 'appointment-alert-' + Date.now(),
         renotify: true,
+        requireInteraction: true,
         data: { url: url || window.location.href }
       }
 
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then((reg) => {
-          reg.showNotification(title, options)
-        })
-      } else {
-        const notif = new Notification(title, options)
-        notif.onclick = () => {
-          window.focus()
-          notif.close()
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready
+          if (reg && reg.showNotification) {
+            await reg.showNotification(title, options)
+            return
+          }
+        } catch (swErr) {
+          console.warn('Fallback notifica standard:', swErr)
         }
+      }
+
+      const notif = new Notification(title, options)
+      notif.onclick = () => {
+        window.focus()
+        notif.close()
       }
     } catch (e) {
       console.warn('Errore visualizzazione notifica:', e)

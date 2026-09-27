@@ -48,3 +48,17 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
+// Registrazione del Service Worker per notifiche smartphone e PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('./sw.js')
+      .then((reg) => {
+        console.log('Service Worker registrato con successo:', reg.scope)
+      })
+      .catch((err) => {
+        console.warn('Registrazione Service Worker non riuscita:', err)
+      })
+  })
+}
+

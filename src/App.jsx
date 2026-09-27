@@ -375,6 +375,20 @@ export default function App() {
       // 2. Salva immediatamente in LocalStorage del browser/telefono
       saveAppointments(updatedApps)
 
+      // Se l'alert è impostato per oggi o imminente, mostra subito la notifica visiva sul telefono
+      if (isAppointmentAlertDue(sanitizedApp)) {
+        const daysLeft = getDaysUntilAppointment(sanitizedApp.date)
+        let alertMsg = ''
+        if (daysLeft === 0) {
+          alertMsg = `OGGI alle ore ${sanitizedApp.time}: appuntamento con ${sanitizedApp.clientName} per ${sanitizedApp.service}`
+        } else if (daysLeft === 1) {
+          alertMsg = `DOMANI alle ore ${sanitizedApp.time}: appuntamento con ${sanitizedApp.clientName} per ${sanitizedApp.service}`
+        } else {
+          alertMsg = `Tra ${daysLeft} giorni (${sanitizedApp.date} ore ${sanitizedApp.time}): appuntamento con ${sanitizedApp.clientName}`
+        }
+        showPhoneNotification(`🔔 Promemoria: ${sanitizedApp.clientName}`, alertMsg)
+      }
+
       let updatedClients = [...clients]
       // 3. Se il cliente non è ancora in rubrica, aggiungilo in rubrica
       if (sanitizedApp.clientName) {
