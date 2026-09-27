@@ -561,6 +561,13 @@ export default function AppointmentModal({
               })}
             </div>
 
+            <div className="bg-amber-100/90 p-2.5 rounded-xl border border-amber-300 text-[11px] text-amber-950 flex items-start gap-2 shadow-2xs">
+              <span className="text-base shrink-0">⏰</span>
+              <span className="leading-tight">
+                <strong>Per far suonare il tuo cellulare anche a schermo spento / telefono bloccato:</strong> usa il pulsante giallo in basso <strong>"⏰ Salva & Sveglia Telefono"</strong>.
+              </span>
+            </div>
+
             {/* Configurazione Numero Cellulare Personale per Alert WhatsApp */}
             <div className="pt-2.5 border-t border-amber-200/80 space-y-2">
               <label className="text-xs font-bold text-amber-950 flex items-center justify-between">
@@ -656,11 +663,11 @@ export default function AppointmentModal({
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, false, true)}
-                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 rounded-xl shadow-xs transition cursor-pointer"
-                title="Salva l'appuntamento e apre direttamente Google Calendar per attivare la sveglia automatica sul tuo cellulare senza scaricare file!"
+                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 text-xs font-black text-amber-950 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-500 hover:to-amber-500 active:scale-95 rounded-xl shadow-md transition cursor-pointer ring-2 ring-amber-400/50"
+                title="Salva l'appuntamento e attiva la sveglia automatica nel calendario del tuo smartphone senza scaricare file!"
               >
-                <Calendar className="w-3.5 h-3.5 text-amber-950" />
-                <span>Salva & Sveglia Google Calendar</span>
+                <Calendar className="w-4 h-4 text-amber-950" />
+                <span>⏰ Salva & Sveglia Telefono</span>
               </button>
             )}
 

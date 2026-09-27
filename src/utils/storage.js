@@ -266,19 +266,24 @@ export function downloadICalendar(appointment, businessName = '') {
   URL.revokeObjectURL(url)
 }
 
-// Genera link Google Calendar diretto
+// Genera link Google Calendar diretto con orario locale esatto italiano
 export function getGoogleCalendarLink(appointment, businessName = '') {
-  const [year, month, day] = appointment.date.split('-')
-  const [hour, minute] = appointment.time.split(':')
-  const start = new Date(year, month - 1, day, hour, minute)
-  const end = new Date(start.getTime() + (appointment.duration || 60) * 60000)
+  if (!appointment) return '#'
+  const [year, month, day] = (appointment.date || '2026-01-01').split('-')
+  const [hour, minute] = (appointment.time || '10:00').split(':')
+  const start = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute))
+  const end = new Date(start.getTime() + (Number(appointment.duration) || 60) * 60000)
 
-  const formatGCal = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, '')
+  const pad = (n) => String(n).padStart(2, '0')
+  const formatGCalLocal = (d) =>
+    `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
 
-  const title = encodeURIComponent(`${appointment.service} - ${appointment.clientName}`)
-  const details = encodeURIComponent(`Cliente: ${appointment.clientName}\nTelefono: ${appointment.clientPhone}\nNote: ${appointment.notes || 'Nessuna'}`)
-  const location = encodeURIComponent(businessName)
-  const dates = `${formatGCal(start)}/${formatGCal(end)}`
+  const title = encodeURIComponent(`${appointment.service || 'Consulenza'} - ${appointment.clientName || 'Cliente'}`)
+  const details = encodeURIComponent(
+    `🔔 SVEGLIA APPUNTAMENTO\nCliente: ${appointment.clientName || ''}\nTelefono: ${appointment.clientPhone || ''}\nServizio: ${appointment.service || ''}\nNote: ${appointment.notes || 'Nessuna'}`
+  )
+  const location = encodeURIComponent(businessName || 'Studio')
+  const dates = `${formatGCalLocal(start)}/${formatGCalLocal(end)}`
 
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}&ctz=Europe/Rome`
 }
