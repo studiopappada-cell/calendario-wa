@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useMemo } from 'react'
+import React, { useState, useRef, useMemo } from 'react'
 import {
   X,
   User,
@@ -29,6 +29,7 @@ export default function ClientDirectoryModal({
   clients = [],
   appointments = [],
   onSaveClient,
+  onBatchImportClients,
   onDeleteClient,
   onNewAppointmentWithClient,
   onTriggerSync,
@@ -153,24 +154,20 @@ export default function ClientDirectoryModal({
         return
       }
 
-      let addedCount = 0
-      parsedContacts.forEach((imported) => {
-        const alreadyExists = safeClients.some(
-          (c) =>
-            String(c.name || '').toLowerCase() === String(imported.name || '').toLowerCase() ||
-            (imported.phone && c.phone && String(c.phone) === String(imported.phone))
-        )
-        if (!alreadyExists) {
-          onSaveClient(imported)
-          addedCount++
-        }
-      })
-
-      setImportNotification({
-        type: 'success',
-        text: `Importati con successo ${addedCount} contatti!`
-      })
-      setTimeout(() => setImportNotification(null), 5000)
+      if (onBatchImportClients) {
+        const addedCount = onBatchImportClients(parsedContacts)
+        setImportNotification({
+          type: 'success',
+          text: `✅ Importati con successo ${addedCount} contatti contemporaneamente in rubrica!`
+        })
+      } else {
+        parsedContacts.forEach((imported) => onSaveClient(imported))
+        setImportNotification({
+          type: 'success',
+          text: `Importati con successo ${parsedContacts.length} contatti!`
+        })
+      }
+      setTimeout(() => setImportNotification(null), 6000)
     }
 
     reader.readAsText(file)
@@ -180,16 +177,20 @@ export default function ClientDirectoryModal({
   const handleNativeContactPicker = async () => {
     const picked = await pickNativeContacts()
     if (picked && picked.length > 0) {
-      let added = 0
-      picked.forEach((c) => {
-        onSaveClient(c)
-        added++
-      })
-      setImportNotification({
-        type: 'success',
-        text: `Importati ${added} contatti dal telefono!`
-      })
-      setTimeout(() => setImportNotification(null), 5000)
+      if (onBatchImportClients) {
+        const added = onBatchImportClients(picked)
+        setImportNotification({
+          type: 'success',
+          text: `✅ Importati con successo ${added} contatti dal telefono in rubrica!`
+        })
+      } else {
+        picked.forEach((c) => onSaveClient(c))
+        setImportNotification({
+          type: 'success',
+          text: `Importati ${picked.length} contatti dal telefono!`
+        })
+      }
+      setTimeout(() => setImportNotification(null), 6000)
     }
   }
 
@@ -271,19 +272,19 @@ export default function ClientDirectoryModal({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 hover:border-blue-400 text-slate-700 hover:text-blue-600 rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer"
-              title="Importa file contatti esportato da Google Contatti (CSV o vCard .vcf)"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:border-blue-500 text-slate-700 hover:text-blue-700 rounded-xl text-xs font-bold shadow-2xs transition cursor-pointer"
+              title="Importa tutti i contatti contemporaneamente da un file esportato dallo smartphone o da Google Contatti (.vcf o .csv)"
             >
               <Upload className="w-3.5 h-3.5 text-blue-600" />
-              <span>Importa Google</span>
+              <span>Importa File (.vcf / .csv)</span>
             </button>
 
             {isContactPickerSupported && (
               <button
                 type="button"
                 onClick={handleNativeContactPicker}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition cursor-pointer"
-                title="Seleziona dalla rubrica dello smartphone"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                title="Seleziona contatti direttamente dalla rubrica dello smartphone (anche selezione multipla)"
               >
                 <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Rubrica Telefono</span>

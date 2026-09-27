@@ -512,6 +512,75 @@ export default function App() {
     setIsAppointmentModalOpen(true)
   }
 
+  // Importazione massiva e simultanea di tutti i contatti (file VCF, CSV o Rubrica Telefono) in un unico blocco
+  const handleBatchImportClients = (newClients) => {
+    if (!Array.isArray(newClients) || newClients.length === 0) return 0
+
+    const currentDel = loadDeletedClientIds()
+    const delSet = new Set(currentDel)
+
+    let count = 0
+    let finalUpdated = []
+
+    setClients((prevClients) => {
+      const existingNames = new Set(
+        prevClients.map((c) => String(c?.name || '').toLowerCase().trim())
+      )
+      const existingPhones = new Set(
+        prevClients.filter((c) => c?.phone).map((c) => String(c.phone).trim())
+      )
+
+      const toAdd = []
+      newClients.forEach((imported) => {
+        if (!imported) return
+        const cleanName = String(imported.name || '').trim()
+        const cleanPhone = String(imported.phone || '').trim()
+        if (!cleanName) return
+
+        const nameKey = cleanName.toLowerCase()
+        const isDuplicate = existingNames.has(nameKey) || (cleanPhone && existingPhones.has(cleanPhone))
+
+        if (!isDuplicate && !delSet.has(imported.id)) {
+          const clientObj = {
+            id: imported.id || 'c_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+            name: cleanName,
+            phone: cleanPhone,
+            notes: String(imported.notes || '').trim()
+          }
+          toAdd.push(clientObj)
+          existingNames.add(nameKey)
+          if (cleanPhone) existingPhones.add(cleanPhone)
+          count++
+        }
+      })
+
+      if (toAdd.length === 0) return prevClients
+
+      finalUpdated = [...prevClients, ...toAdd]
+      saveClients(finalUpdated)
+
+      // Unico salvataggio cloud atomico per tutti i contatti insieme
+      pushCloudData({
+        appointments,
+        clients: finalUpdated,
+        settings,
+        deletedAppIds: loadDeletedAppIds(),
+        deletedClientIds: currentDel
+      })
+        .then((res) => {
+          if (res && res.success) {
+            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+            setSyncStatus('online')
+          }
+        })
+        .catch((err) => console.warn('Errore push batch clients:', err))
+
+      return finalUpdated
+    })
+
+    return count
+  }
+
   // Se l'utente apre la rubrica e la lista è vuota, sincronizza subito dal cloud
   useEffect(() => {
     if (isClientsModalOpen && clients.length === 0) {
@@ -692,6 +761,7 @@ export default function App() {
         onClose={() => setIsClientsModalOpen(false)}
         clients={clients}
         appointments={appointments}
+        onBatchImportClients={handleBatchImportClients}
         onSaveClient={(newClient) => {
           let updatedClients = []
           const exists = clients.some((c) => c.id === newClient.id)
