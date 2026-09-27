@@ -12,26 +12,81 @@ export const ALERT_OPTIONS = [
   { id: '10d', label: '10 Giorni prima', days: 10 }
 ]
 
-// Riproduce un suono acustico di notifica campana
+// Ottiene la data locale odierna in formato YYYY-MM-DD
+export function getLocalTodayString() {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Contesto Audio riutilizzabile e sbloccabile
+let sharedAudioContext = null
+
+// Sblocca il sistema audio al primo tocco dell'utente sullo schermo
+export function initAudioUnlock() {
+  if (typeof window === 'undefined') return
+  const unlock = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext
+      if (AudioCtx && !sharedAudioContext) {
+        sharedAudioContext = new AudioCtx()
+      }
+      if (sharedAudioContext && sharedAudioContext.state === 'suspended') {
+        sharedAudioContext.resume()
+      }
+    } catch (e) {
+      console.warn('Inizializzazione audio:', e)
+    }
+  }
+
+  window.addEventListener('touchstart', unlock, { once: true, passive: true })
+  window.addEventListener('click', unlock, { once: true, passive: true })
+}
+
+// Riproduce un suono acustico squillante e gradevole di notifica campanella
 export function playNotificationSound() {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext
-    if (!AudioContext) return
-    const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.type = 'sine'
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (!AudioCtx) return
+
+    if (!sharedAudioContext) {
+      sharedAudioContext = new AudioCtx()
+    }
+
+    if (sharedAudioContext.state === 'suspended') {
+      sharedAudioContext.resume().catch(() => {})
+    }
+
+    const ctx = sharedAudioContext
     const now = ctx.currentTime
-    osc.frequency.setValueAtTime(587.33, now) // D5
-    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15) // A5
-    gain.gain.setValueAtTime(0.3, now)
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5)
-    osc.start(now)
-    osc.stop(now + 0.5)
+
+    // Primo tono (Mi 659 Hz)
+    const osc1 = ctx.createOscillator()
+    const gain1 = ctx.createGain()
+    osc1.type = 'triangle'
+    osc1.frequency.setValueAtTime(659.25, now)
+    gain1.gain.setValueAtTime(0.35, now)
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.35)
+    osc1.connect(gain1)
+    gain1.connect(ctx.destination)
+    osc1.start(now)
+    osc1.stop(now + 0.35)
+
+    // Secondo tono brillante (La 880 Hz) dopo 120ms
+    const osc2 = ctx.createOscillator()
+    const gain2 = ctx.createGain()
+    osc2.type = 'sine'
+    osc2.frequency.setValueAtTime(880, now + 0.12)
+    gain2.gain.setValueAtTime(0.4, now + 0.12)
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.6)
+    osc2.connect(gain2)
+    gain2.connect(ctx.destination)
+    osc2.start(now + 0.12)
+    osc2.stop(now + 0.6)
   } catch (e) {
-    console.warn('Errore audio:', e)
+    console.warn('Errore esecuzione suono notifica:', e)
   }
 }
 
@@ -49,50 +104,67 @@ export async function requestNotificationPermission() {
   }
 }
 
-// Invia una notifica nativa sul cellulare con suono e vibrazione
+// Invia una notifica nativa sul cellulare con suono e vibrazione (100% sicura per Android e iOS)
 export async function showPhoneNotification(title, body, url) {
+  // Suono campana
   playNotificationSound()
+
+  // Vibrazione del telefono
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     try {
-      navigator.vibrate([300, 150, 300, 150, 300])
+      navigator.vibrate([400, 200, 400, 200, 400])
     } catch (e) {}
   }
 
   if (typeof window === 'undefined' || !('Notification' in window)) return
+  if (Notification.permission !== 'granted') return
 
-  if (Notification.permission === 'granted') {
+  const options = {
+    body,
+    icon: './calendar-icon.svg',
+    badge: './favicon.svg',
+    vibrate: [400, 200, 400, 200, 400],
+    tag: 'app-alert-' + Date.now(),
+    renotify: true,
+    requireInteraction: true,
+    data: { url: url || window.location.href }
+  }
+
+  // Tentativo primario sicuro tramite Service Worker (obbligatorio su Android Chrome per evitare Illegal Constructor)
+  if ('serviceWorker' in navigator) {
     try {
-      const options = {
-        body,
-        icon: './calendar-icon.svg',
-        badge: './favicon.svg',
-        vibrate: [300, 150, 300, 150, 300],
-        tag: 'appointment-alert-' + Date.now(),
-        renotify: true,
-        requireInteraction: true,
-        data: { url: url || window.location.href }
+      // Promise con timeout di 1 secondo per non bloccare l'esecuzione se il worker è in avvio
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 1000))
+      const reg = await Promise.race([navigator.serviceWorker.ready, timeoutPromise])
+
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, options)
+        return
       }
 
-      if ('serviceWorker' in navigator) {
-        try {
-          const reg = await navigator.serviceWorker.ready
-          if (reg && reg.showNotification) {
-            await reg.showNotification(title, options)
-            return
-          }
-        } catch (swErr) {
-          console.warn('Fallback notifica standard:', swErr)
-        }
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SHOW_NOTIFICATION',
+          title,
+          options
+        })
+        return
       }
-
-      const notif = new Notification(title, options)
-      notif.onclick = () => {
-        window.focus()
-        notif.close()
-      }
-    } catch (e) {
-      console.warn('Errore visualizzazione notifica:', e)
+    } catch (swErr) {
+      console.warn('Tentativo ServiceWorker notifica fallito:', swErr)
     }
+  }
+
+  // Fallback per browser desktop o browser che supportano il costruttore Notification
+  try {
+    const notif = new Notification(title, options)
+    notif.onclick = () => {
+      window.focus()
+      notif.close()
+    }
+  } catch (e) {
+    // Su Android Chrome questo fallisce intenzionalmente per specifiche di sicurezza
+    console.info('Notifica desktop fallback non applicabile su questo dispositivo:', e.message)
   }
 }
 
@@ -101,13 +173,13 @@ export async function triggerTestAlert() {
   playNotificationSound()
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     try {
-      navigator.vibrate([200, 100, 200])
+      navigator.vibrate([300, 150, 300])
     } catch (e) {}
   }
 
   const perm = await requestNotificationPermission()
   if (perm === 'granted') {
-    showPhoneNotification(
+    await showPhoneNotification(
       '🔔 Test Alert Riuscito!',
       'Ottimo! Il promemoria sul tuo cellulare è attivo e funzionante per i tuoi appuntamenti.'
     )
@@ -119,7 +191,7 @@ export async function triggerTestAlert() {
     return {
       success: false,
       message:
-        'Le notifiche sono al momento bloccate dal browser del telefono. Tocca l\'icona del lucchetto (o impostazioni del sito) in alto a sinistra e attiva "Notifiche".'
+        'Le notifiche sono bloccate dal browser del telefono. Tocca l\'icona del lucchetto (o impostazioni del sito) in alto e attiva "Notifiche".'
     }
   } else {
     return {
@@ -129,35 +201,83 @@ export async function triggerTestAlert() {
   }
 }
 
-// Calcola quanti giorni mancano all'appuntamento
+// Calcola quanti giorni mancano all'appuntamento rispetto alla data locale reale
 export function getDaysUntilAppointment(dateStr) {
   if (!dateStr) return null
   const now = new Date()
-  now.setHours(0, 0, 0, 0)
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
   const [y, m, d] = dateStr.split('-').map(Number)
+  if (!y || !m || !d) return null
   const appDate = new Date(y, m - 1, d)
-  appDate.setHours(0, 0, 0, 0)
-  const diffTime = appDate.getTime() - now.getTime()
+
+  const diffTime = appDate.getTime() - todayDate.getTime()
   return Math.round(diffTime / (1000 * 60 * 60 * 24))
 }
 
-// Verifica se un appuntamento deve emettere un alert oggi
+// Verifica dettagliata se un appuntamento deve emettere un alert oggi
 export function isAppointmentAlertDue(appointment) {
   if (!appointment || !appointment.reminderAlert || appointment.reminderAlert === 'none') {
-    return false
+    return null
   }
 
   const option = ALERT_OPTIONS.find((o) => o.id === appointment.reminderAlert)
-  if (!option || option.days < 0) return false
+  if (!option || option.days < 0) return null
 
   const daysLeft = getDaysUntilAppointment(appointment.date)
-  if (daysLeft === null || daysLeft < 0) return false
-
-  // Se l'alert è per 'today' (giorno stesso)
-  if (option.id === 'today') {
-    return daysLeft === 0
+  if (daysLeft === null || daysLeft < 0) {
+    // Appuntamento già passato nei giorni precedenti
+    return null
   }
 
-  // Se l'alert è con preavviso di N giorni
-  return daysLeft <= option.days
+  // 1. Se l'alert è impostato per 'today' (il giorno stesso)
+  if (option.id === 'today') {
+    if (daysLeft === 0) {
+      return {
+        isDue: true,
+        daysLeft: 0,
+        type: 'today',
+        title: `🔔 Appuntamento OGGI alle ${appointment.time || '10:00'}!`,
+        message: `OGGI alle ore ${appointment.time || '10:00'}: appuntamento con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
+      }
+    }
+    return null
+  }
+
+  // 2. Se l'alert è con preavviso di N giorni (es. 1d, 3d, 5d, 7d, 10d)
+  if (daysLeft === option.days) {
+    const daysLabel = daysLeft === 1 ? 'DOMANI' : `tra ${daysLeft} giorni`
+    return {
+      isDue: true,
+      daysLeft,
+      type: 'advance',
+      title: `🔔 Promemoria: Appuntamento ${daysLabel}!`,
+      message: `Appuntamento ${daysLabel} (${appointment.date} alle ore ${appointment.time || '10:00'}) con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
+    }
+  }
+
+  // 3. Se mancano meno giorni del preavviso impostato (es. l'utente ha impostato 3 giorni prima ma oggi è già il giorno stesso)
+  if (daysLeft === 0) {
+    return {
+      isDue: true,
+      daysLeft: 0,
+      type: 'today',
+      title: `🔔 Appuntamento OGGI alle ${appointment.time || '10:00'}!`,
+      message: `OGGI alle ore ${appointment.time || '10:00'}: appuntamento con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
+    }
+  }
+
+  // 4. Se mancano meno giorni del preavviso (es. creato con anticipo già scaduto ma non passato)
+  if (daysLeft < option.days && daysLeft > 0) {
+    const daysLabel = daysLeft === 1 ? 'DOMANI' : `tra ${daysLeft} giorni`
+    return {
+      isDue: true,
+      daysLeft,
+      type: 'advance',
+      title: `🔔 Promemoria Imminente: Appuntamento ${daysLabel}!`,
+      message: `Appuntamento ${daysLabel} (${appointment.date} alle ore ${appointment.time || '10:00'}) con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
+    }
+  }
+
+  return null
 }

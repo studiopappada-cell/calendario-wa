@@ -1,4 +1,4 @@
-﻿// Service Worker per la gestione delle Notifiche e Promemoria su Smartphone
+// Service Worker per la gestione delle Notifiche e Promemoria su Smartphone
 self.addEventListener('install', (event) => {
   self.skipWaiting()
 })
@@ -24,4 +24,12 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   )
+})
+
+// Ricezione comandi di notifica dalla pagina principale
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, options } = event.data
+    self.registration.showNotification(title, options)
+  }
 })

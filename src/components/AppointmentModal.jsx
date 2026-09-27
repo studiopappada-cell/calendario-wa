@@ -216,10 +216,7 @@ export default function AppointmentModal({
       return
     }
 
-    if (andSendOwnerAlert && !ownerPhone.trim()) {
-      setFormError('Inserisci il tuo numero di cellulare nel riquadro dell\'alert per ricevere l\'avviso su WhatsApp!')
-      return
-    }
+    // Salvataggio dati appuntamento
 
     const payload = {
       ...formData,

@@ -24,12 +24,15 @@ import AppointmentModal from './components/AppointmentModal'
 import WhatsAppModal from './components/WhatsAppModal'
 import ClientDirectoryModal from './components/ClientDirectoryModal'
 import StatsModal from './components/StatsModal'
-import SettingsModal from './components/SettingsModal'
+import ActiveAlertBanner from './components/ActiveAlertBanner'
+import NotificationPermissionBanner from './components/NotificationPermissionBanner'
 import {
   isAppointmentAlertDue,
   showPhoneNotification,
   requestNotificationPermission,
-  getDaysUntilAppointment
+  getDaysUntilAppointment,
+  getLocalTodayString,
+  initAudioUnlock
 } from './utils/notifications'
 
 // Merge intelligente: unisce le liste di appuntamenti senza perdere quelli locali
@@ -102,6 +105,7 @@ export default function App() {
   const [isClientsModalOpen, setIsClientsModalOpen] = useState(false)
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+  const [activeInAppAlert, setActiveInAppAlert] = useState(null)
 
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState(null)
@@ -109,8 +113,46 @@ export default function App() {
 
   const isInitialMount = useRef(true)
 
-  // 1. All'avvio dell'app: recupera i dati freschi dal cloud GitHub
+  // Verifica ed esecuzione istantanea degli avvisi promemoria con suono, vibrazione e banner visivo
+  const checkAndTriggerAlerts = useCallback((appsList) => {
+    if (!Array.isArray(appsList) || appsList.length === 0) return
+
+    const todayStr = getLocalTodayString()
+
+    appsList.forEach((app) => {
+      if (!app || !app.id || app.status === 'cancelled') return
+
+      const dueInfo = isAppointmentAlertDue(app)
+      if (dueInfo && dueInfo.isDue) {
+        // Chiave univoca per dispositivo e per stato di notifica
+        const ackKey = `alert_ack_${app.id}_${todayStr}_${dueInfo.type}_${dueInfo.daysLeft}`
+        const alreadyAcked = localStorage.getItem(ackKey)
+
+        if (!alreadyAcked) {
+          // 1. Notifica nativa del cellulare con suono e vibrazione
+          showPhoneNotification(dueInfo.title, dueInfo.message)
+
+          // 2. Banner visivo in primo piano nell'app (visibile e sonoro su qualsiasi schermo)
+          setActiveInAppAlert({
+            appointmentId: app.id,
+            title: dueInfo.title,
+            message: dueInfo.message,
+            app
+          })
+
+          try {
+            localStorage.setItem(ackKey, 'true')
+          } catch (e) {}
+        }
+      }
+    })
+  }, [])
+
+  // 1. All'avvio dell'app: recupera i dati freschi dal cloud GitHub e sblocca l'audio
   useEffect(() => {
+    // Inizializza lo sblocco dell'audio per suoni e campanella al primo tocco
+    initAudioUnlock()
+
     const doInitialSync = async () => {
       setIsSyncing(true)
       setSyncStatus('syncing')
@@ -150,6 +192,10 @@ export default function App() {
             const mergedA = mergeAppointments(currentApps, cloudData.appointments, delAppSet)
             setAppointments(mergedA)
             saveAppointments(mergedA)
+
+            // CONTROLLO IMMEDIATO DEGLI ALERT APPENA SCARICATI DAL CLOUD!
+            checkAndTriggerAlerts(mergedA)
+
             if (mergedA.length > cloudData.appointments.length) {
               pushCloudData({
                 appointments: mergedA,
@@ -179,6 +225,7 @@ export default function App() {
           })
           setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
           setSyncStatus('online')
+          checkAndTriggerAlerts(appointments)
         }
       } catch (err) {
         console.error('Errore sincronizzazione iniziale:', err)
@@ -190,25 +237,31 @@ export default function App() {
 
     doInitialSync()
 
-    // Polling ogni 12 secondi e quando l'utente torna sulla finestra (focus o tab attiva)
+    // Polling ogni 10 secondi e quando lo smartphone viene sbloccato o l'utente torna sull'app
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         handleTriggerSync(false)
       }
-    }, 12000)
+      checkAndTriggerAlerts(loadAppointments())
+    }, 10000)
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        handleTriggerSync(false)
-      }
+    const onWakeUp = () => {
+      handleTriggerSync(false)
+      checkAndTriggerAlerts(loadAppointments())
     }
-    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    document.addEventListener('visibilitychange', onWakeUp)
+    window.addEventListener('focus', onWakeUp)
+    window.addEventListener('pageshow', onWakeUp)
+    window.addEventListener('touchstart', onWakeUp, { once: true, passive: true })
 
     return () => {
       clearInterval(interval)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
+      document.removeEventListener('visibilitychange', onWakeUp)
+      window.removeEventListener('focus', onWakeUp)
+      window.removeEventListener('pageshow', onWakeUp)
     }
-  }, [])
+  }, [checkAndTriggerAlerts])
 
   // Sincronizzazione non distruttiva dal Cloud (con filtro tombstones)
   const handleTriggerSync = async (forcePush = false) => {
@@ -259,6 +312,10 @@ export default function App() {
             const mergedApps = mergeAppointments(appointments, res.data.appointments, activeDelAppSet)
             setAppointments(mergedApps)
             saveAppointments(mergedApps)
+
+            // Esegue subito il controllo allarmi al ricevimento dei dati cloud
+            checkAndTriggerAlerts(mergedApps)
+
             if (mergedApps.length > (res.data.appointments?.length || 0)) {
               pushCloudData({
                 appointments: mergedApps,
@@ -298,47 +355,10 @@ export default function App() {
     saveClients(clients)
   }, [clients])
 
-  // Controllo automatico e invio delle notifiche promemoria sullo smartphone
+  // Controllo automatico continuo degli alert al variare degli appuntamenti
   useEffect(() => {
-    const checkAlerts = () => {
-      if (!Array.isArray(appointments) || appointments.length === 0) return
-
-      const todayStr = new Date().toISOString().split('T')[0]
-      appointments.forEach((app) => {
-        if (!app || !app.id || app.status === 'cancelled') return
-
-        if (isAppointmentAlertDue(app)) {
-          const notifiedKey = `alert_sent_${app.id}_${todayStr}`
-          const alreadySent = localStorage.getItem(notifiedKey)
-          if (!alreadySent) {
-            const daysLeft = getDaysUntilAppointment(app.date)
-            let alertMsg = ''
-            if (daysLeft === 0) {
-              alertMsg = `OGGI alle ${app.time}: appuntamento con ${app.clientName || 'Cliente'} (${app.service || 'Consulenza'})`
-            } else if (daysLeft === 1) {
-              alertMsg = `DOMANI alle ${app.time}: appuntamento con ${app.clientName || 'Cliente'} (${app.service || 'Consulenza'})`
-            } else {
-              alertMsg = `Mancano ${daysLeft} giorni: appuntamento il ${app.date} alle ${app.time} con ${app.clientName || 'Cliente'}`
-            }
-
-            showPhoneNotification(`🔔 Promemoria: ${app.clientName || 'Appuntamento'}`, alertMsg)
-            try {
-              localStorage.setItem(notifiedKey, 'true')
-            } catch (e) {}
-          }
-        }
-      })
-    }
-
-    // Controlla subito dopo 2 secondi dal montaggio, poi ripete ogni 15 minuti
-    const timeout = setTimeout(checkAlerts, 2000)
-    const alertInterval = setInterval(checkAlerts, 15 * 60 * 1000)
-
-    return () => {
-      clearTimeout(timeout)
-      clearInterval(alertInterval)
-    }
-  }, [appointments])
+    checkAndTriggerAlerts(appointments)
+  }, [appointments, checkAndTriggerAlerts])
 
   // Creazione o Salvataggio Appuntamento (immediato e a prova di errore)
   const handleSaveAppointment = (appData) => {
@@ -349,7 +369,7 @@ export default function App() {
         clientName: String(appData.clientName || '').trim(),
         clientPhone: String(appData.clientPhone || '').trim(),
         service: String(appData.service || 'Consulenza').trim(),
-        date: String(appData.date || new Date().toISOString().split('T')[0]),
+        date: String(appData.date || getLocalTodayString()),
         time: String(appData.time || '10:00'),
         duration: Number(appData.duration || 60),
         status: String(appData.status || 'confirmed'),
@@ -375,19 +395,8 @@ export default function App() {
       // 2. Salva immediatamente in LocalStorage del browser/telefono
       saveAppointments(updatedApps)
 
-      // Se l'alert è impostato per oggi o imminente, mostra subito la notifica visiva sul telefono
-      if (isAppointmentAlertDue(sanitizedApp)) {
-        const daysLeft = getDaysUntilAppointment(sanitizedApp.date)
-        let alertMsg = ''
-        if (daysLeft === 0) {
-          alertMsg = `OGGI alle ore ${sanitizedApp.time}: appuntamento con ${sanitizedApp.clientName} per ${sanitizedApp.service}`
-        } else if (daysLeft === 1) {
-          alertMsg = `DOMANI alle ore ${sanitizedApp.time}: appuntamento con ${sanitizedApp.clientName} per ${sanitizedApp.service}`
-        } else {
-          alertMsg = `Tra ${daysLeft} giorni (${sanitizedApp.date} ore ${sanitizedApp.time}): appuntamento con ${sanitizedApp.clientName}`
-        }
-        showPhoneNotification(`🔔 Promemoria: ${sanitizedApp.clientName}`, alertMsg)
-      }
+      // 3. Esegue subito il controllo alert per emettere suono, vibrazione o banner se dovuto oggi o imminente
+      checkAndTriggerAlerts(updatedApps)
 
       let updatedClients = [...clients]
       // 3. Se il cliente non è ancora in rubrica, aggiungilo in rubrica
@@ -520,7 +529,7 @@ export default function App() {
   }
 
   const dueAlertsCount = appointments.filter(
-    (a) => a && a.status !== 'cancelled' && isAppointmentAlertDue(a)
+    (a) => a && a.status !== 'cancelled' && isAppointmentAlertDue(a)?.isDue
   ).length
 
   const handleToggleAlerts = async () => {
@@ -532,6 +541,23 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col text-slate-900 pb-16 md:pb-6" style={{ backgroundColor: '#ffffff' }}>
+      {/* Banner per richiedere i permessi di notifica e sveglia sullo smartphone se non ancora attivi */}
+      <NotificationPermissionBanner />
+
+      {/* Finestra / Banner di Allarme Visivo e Sonoro in Primo Piano */}
+      <ActiveAlertBanner
+        alert={activeInAppAlert}
+        onDismiss={() => setActiveInAppAlert(null)}
+        onViewAppointment={(appId) => {
+          const app = appointments.find((a) => a.id === appId)
+          if (app) {
+            setEditingAppointment(app)
+            setIsAppointmentModalOpen(true)
+          }
+          setActiveInAppAlert(null)
+        }}
+      />
+
       {/* Barra Superiore */}
       <Navbar
         currentView={currentView}
