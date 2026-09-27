@@ -29,12 +29,6 @@
   ],
   "clients": [
     {
-      "id": "c1",
-      "name": "Marco Rossi",
-      "phone": "3471234567",
-      "notes": "Cliente abituale"
-    },
-    {
       "id": "c_1790525420050",
       "name": "Raffaele Pappada",
       "phone": "3911166240",
@@ -69,6 +63,7 @@
   ],
   "deletedClientIds": [
     "c3",
-    "c2"
+    "c2",
+    "c1"
   ]
 }
