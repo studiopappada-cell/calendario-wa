@@ -1,5 +1,45 @@
 {
-  "appointments": [],
+  "appointments": [
+    {
+      "id": "demo-1",
+      "clientName": "Marco Rossi",
+      "clientPhone": "3471234567",
+      "service": "Consulenza Strategica",
+      "date": "2026-09-27",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": 80,
+      "notes": "Primo incontro di presentazione progetto.",
+      "createdAt": "2026-09-27T15:46:45.202Z"
+    },
+    {
+      "id": "demo-2",
+      "clientName": "Laura Bianchi",
+      "clientPhone": "3389876543",
+      "service": "Trattamento / Servizio",
+      "date": "2026-09-28",
+      "time": "15:30",
+      "duration": 45,
+      "status": "pending",
+      "price": 50,
+      "notes": "Richiesta conferma via WhatsApp.",
+      "createdAt": "2026-09-27T15:46:45.203Z"
+    },
+    {
+      "id": "demo-3",
+      "clientName": "Giuseppe Verdi",
+      "clientPhone": "3201122334",
+      "service": "Revisione Documenti",
+      "date": "2026-09-29",
+      "time": "11:00",
+      "duration": 30,
+      "status": "confirmed",
+      "price": 40,
+      "notes": "Portare copia della documentazione cartacea.",
+      "createdAt": "2026-09-27T15:46:45.203Z"
+    }
+  ],
   "clients": [
     {
       "id": "c_1790515179383",
@@ -143,6 +183,24 @@
       "id": "c_1790517870050",
       "name": "Raffaele Pappada",
       "phone": "3911166240",
+      "notes": ""
+    },
+    {
+      "id": "c1",
+      "name": "Marco Rossi",
+      "phone": "3471234567",
+      "notes": "Cliente abituale"
+    },
+    {
+      "id": "c2",
+      "name": "Laura Bianchi",
+      "phone": "3389876543",
+      "notes": "Preferisce il pomeriggio"
+    },
+    {
+      "id": "c3",
+      "name": "Giuseppe Verdi",
+      "phone": "3201122334",
       "notes": ""
     }
   ],
