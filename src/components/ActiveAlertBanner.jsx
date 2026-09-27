@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import { BellRing, Volume2, X, Calendar, CheckCircle } from 'lucide-react'
 
 /**
@@ -9,7 +9,10 @@ export default function ActiveAlertBanner({ alert, onDismiss, onViewAppointment 
   if (!alert) return null
 
   return (
-    <div className="fixed top-3 left-3 right-3 sm:left-auto sm:right-4 sm:max-w-md z-9999 animate-in slide-in-from-top duration-300">
+    <div
+      style={{ zIndex: 99999 }}
+      className="fixed top-3 left-3 right-3 sm:left-auto sm:right-4 sm:max-w-md animate-in slide-in-from-top duration-300 shadow-2xl"
+    >
       <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white rounded-2xl p-4 shadow-2xl border-2 border-amber-300 ring-4 ring-amber-400/30 flex flex-col gap-3">
         {/* Intestazione Allarme con Campanella Animata */}
         <div className="flex items-start justify-between gap-2">
