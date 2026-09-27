@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   loadAppointments,
   saveAppointments,
@@ -7,7 +7,7 @@ import {
   loadClients,
   saveClients
 } from './utils/storage'
-import { pushToCloud, pullFromCloud } from './utils/cloudSync'
+import { fetchCloudData, pushCloudData } from './utils/githubSync'
 
 // Componenti
 import Navbar from './components/Navbar'
@@ -28,7 +28,6 @@ export default function App() {
   const [clients, setClients] = useState(() => loadClients())
 
   const [currentView, setCurrentView] = useState(() => {
-    // Se su schermo piccolo, apri direttamente in modalità Agenda per massima comodità
     return window.innerWidth < 768 ? 'agenda' : 'month'
   })
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -46,24 +45,114 @@ export default function App() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
 
   const [isSyncing, setIsSyncing] = useState(false)
+  const [lastSyncTime, setLastSyncTime] = useState(null)
+  const [syncStatus, setSyncStatus] = useState('online') // 'online', 'syncing', 'error'
 
-  // Controllo parametri URL (es. ?room=CAL-XXXX) per la sincronizzazione immediata tra PC e smartphone
+  const isInitialMount = useRef(true)
+
+  // 1. All'avvio dell'app: recupera i dati freschi dal cloud GitHub
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const roomParam = params.get('room')
-    if (roomParam) {
-      setSettings((prev) => {
-        const updated = {
-          ...prev,
-          cloudSync: { ...prev.cloudSync, syncCode: roomParam.toUpperCase(), enabled: true }
+    const doInitialSync = async () => {
+      setIsSyncing(true)
+      setSyncStatus('syncing')
+      try {
+        const cloudRes = await fetchCloudData()
+        if (cloudRes.success && cloudRes.data) {
+          const cloudData = cloudRes.data
+          // Se il cloud ha clienti o appuntamenti, sincronizziamoli
+          if (Array.isArray(cloudData.clients) && cloudData.clients.length > 0) {
+            setClients(cloudData.clients)
+            saveClients(cloudData.clients)
+          } else if (clients.length > 0) {
+            // Se il cloud non li ha ma noi li abbiamo in locale, inviamoli subito al cloud!
+            await pushCloudData({ appointments, clients, settings })
+          }
+
+          if (Array.isArray(cloudData.appointments) && cloudData.appointments.length > 0) {
+            setAppointments(cloudData.appointments)
+            saveAppointments(cloudData.appointments)
+          } else if (appointments.length > 0) {
+            await pushCloudData({ appointments, clients, settings })
+          }
+
+          if (cloudData.settings) {
+            setSettings(cloudData.settings)
+            saveSettings(cloudData.settings)
+          }
+
+          setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+          setSyncStatus('online')
+        } else {
+          // Se nel cloud non c'è ancora il file, carichiamo lo stato corrente locale
+          await pushCloudData({ appointments, clients, settings })
+          setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+          setSyncStatus('online')
         }
-        saveSettings(updated)
-        return updated
-      })
-      // Prova a sincronizzare subito
-      handleTriggerSync(roomParam.toUpperCase())
+      } catch (err) {
+        console.error('Errore sincronizzazione iniziale:', err)
+        setSyncStatus('error')
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+
+    doInitialSync()
+
+    // Polling ogni 12 secondi e quando l'utente torna sulla finestra (focus o tab attiva)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        handleTriggerSync(false)
+      }
+    }, 12000)
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleTriggerSync(false)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
+
+  // Sincronizzazione automatica dal Cloud
+  const handleTriggerSync = async (forcePush = false) => {
+    setIsSyncing(true)
+    setSyncStatus('syncing')
+    try {
+      if (forcePush) {
+        await pushCloudData({ appointments, clients, settings })
+        setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+        setSyncStatus('online')
+      } else {
+        const res = await fetchCloudData()
+        if (res.success && res.data) {
+          if (Array.isArray(res.data.clients)) {
+            setClients(res.data.clients)
+            saveClients(res.data.clients)
+          }
+          if (Array.isArray(res.data.appointments)) {
+            setAppointments(res.data.appointments)
+            saveAppointments(res.data.appointments)
+          }
+          if (res.data.settings) {
+            setSettings(res.data.settings)
+            saveSettings(res.data.settings)
+          }
+          setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+          setSyncStatus('online')
+        }
+      }
+    } catch (e) {
+      console.warn('Errore sync:', e)
+      setSyncStatus('error')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   // Persistenza locale automatica
   useEffect(() => {
@@ -78,30 +167,6 @@ export default function App() {
     saveClients(clients)
   }, [clients])
 
-  // Gestione sincronizzazione Cloud
-  const handleTriggerSync = async (code) => {
-    const targetCode = code || settings.cloudSync?.syncCode
-    if (!targetCode) return
-
-    setIsSyncing(true)
-    try {
-      // 1. Prova a caricare dal cloud
-      const cloudRes = await pullFromCloud(targetCode)
-      if (cloudRes.success && cloudRes.data) {
-        if (cloudRes.data.appointments) setAppointments(cloudRes.data.appointments)
-        if (cloudRes.data.clients) setClients(cloudRes.data.clients)
-        if (cloudRes.data.settings) setSettings(cloudRes.data.settings)
-      } else {
-        // Se non esiste ancora sul cloud, invia i dati correnti
-        await pushToCloud(targetCode, { appointments, clients, settings })
-      }
-    } catch (e) {
-      console.warn('Errore sync:', e)
-    } finally {
-      setIsSyncing(false)
-    }
-  }
-
   // Creazione o Salvataggio Appuntamento
   const handleSaveAppointment = (appData) => {
     let updatedApps = []
@@ -114,37 +179,46 @@ export default function App() {
     }
     setAppointments(updatedApps)
 
+    let updatedClients = [...clients]
     // Se il cliente non è ancora in rubrica, aggiungilo automaticamente!
     if (appData.clientName) {
       const clientExists = clients.some(
         (c) => c.name.toLowerCase() === appData.clientName.toLowerCase()
       )
       if (!clientExists) {
-        setClients((prev) => [
-          ...prev,
-          {
-            id: 'c_' + Date.now(),
-            name: appData.clientName,
-            phone: appData.clientPhone || '',
-            notes: ''
-          }
-        ])
+        const newClient = {
+          id: 'c_' + Date.now(),
+          name: appData.clientName,
+          phone: appData.clientPhone || '',
+          notes: ''
+        }
+        updatedClients = [...clients, newClient]
+        setClients(updatedClients)
       }
     }
+
+    // Salva immediatamente nel Cloud GitHub!
+    pushCloudData({ appointments: updatedApps, clients: updatedClients, settings }).then(() => {
+      setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+    })
 
     return appData
   }
 
   // Eliminazione Appuntamento
   const handleDeleteAppointment = (id) => {
-    setAppointments((prev) => prev.filter((a) => a.id !== id))
+    const updated = appointments.filter((a) => a.id !== id)
+    setAppointments(updated)
+    pushCloudData({ appointments: updated, clients, settings }).then(() => {
+      setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+    })
   }
 
   // Aggiornamento Rapido Stato Appuntamento
   const handleUpdateStatus = (id, newStatus) => {
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
-    )
+    const updated = appointments.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
+    setAppointments(updated)
+    pushCloudData({ appointments: updated, clients, settings })
   }
 
   // Apertura modale WhatsApp
@@ -190,8 +264,18 @@ export default function App() {
     setIsAppointmentModalOpen(true)
   }
 
+  const handleHardReload = () => {
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => caches.delete(name))
+      })
+    }
+    const tokenPart = window.location.hash || ''
+    window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now() + tokenPart
+  }
+
   return (
-    <div className="min-h-screen bg-white flex flex-col text-slate-900 pb-16 md:pb-6">
+    <div className="min-h-screen bg-white flex flex-col text-slate-900 pb-16 md:pb-6" style={{ backgroundColor: '#ffffff' }}>
       {/* Barra Superiore */}
       <Navbar
         currentView={currentView}
@@ -201,8 +285,43 @@ export default function App() {
         onOpenStats={() => setIsStatsModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         appointmentsCount={appointments.length}
-        syncCode={settings.cloudSync?.syncCode}
+        isSyncing={isSyncing}
+        lastSyncTime={lastSyncTime}
+        onTriggerSync={() => handleTriggerSync(false)}
       />
+
+      {/* Banner Sincronizzazione & Versione Attiva */}
+      <div className="bg-slate-50 border-b border-slate-200/80 px-3 sm:px-6 py-1.5 flex items-center justify-between text-[11px] text-slate-600">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
+            <span className="font-semibold text-slate-800">
+              {isSyncing ? 'Sincronizzazione Cloud...' : `Cloud Attivo ${lastSyncTime ? `(${lastSyncTime})` : ''}`}
+            </span>
+          </span>
+          <span className="hidden sm:inline text-slate-300">•</span>
+          <span className="hidden sm:inline text-slate-500">
+            {clients.length} clienti in rubrica
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleTriggerSync(false)}
+            className="font-bold text-blue-600 hover:text-blue-800 active:scale-95 px-2 py-0.5 rounded bg-blue-50 border border-blue-200 transition cursor-pointer"
+            title="Sincronizza subito i contatti e gli appuntamenti con il Cloud"
+          >
+            Sincronizza 🔄
+          </button>
+          <button
+            onClick={handleHardReload}
+            className="text-[10px] text-slate-400 hover:text-slate-700 underline"
+            title="Ricarica forzata della pagina se vedi la vecchia versione"
+          >
+            Svuota Cache
+          </button>
+        </div>
+      </div>
 
       {/* Contenitore Principale */}
       <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 flex-1">
@@ -281,20 +400,34 @@ export default function App() {
         onUpdateStatus={handleUpdateStatus}
       />
 
-      {/* 3. Modale Rubrica Clienti */}
+      {/* 3. Modale Rubrica Clienti con Sync Cloud Istantaneo */}
       <ClientDirectoryModal
         isOpen={isClientsModalOpen}
         onClose={() => setIsClientsModalOpen(false)}
         clients={clients}
         appointments={appointments}
         onSaveClient={(newClient) => {
-          setClients((prev) => {
-            const exists = prev.some((c) => c.id === newClient.id)
-            if (exists) return prev.map((c) => (c.id === newClient.id ? newClient : c))
-            return [...prev, newClient]
+          let updatedClients = []
+          const exists = clients.some((c) => c.id === newClient.id)
+          if (exists) {
+            updatedClients = clients.map((c) => (c.id === newClient.id ? newClient : c))
+          } else {
+            updatedClients = [...clients, newClient]
+          }
+          setClients(updatedClients)
+          saveClients(updatedClients)
+          pushCloudData({ appointments, clients: updatedClients, settings }).then(() => {
+            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
           })
         }}
-        onDeleteClient={(id) => setClients((prev) => prev.filter((c) => c.id !== id))}
+        onDeleteClient={(id) => {
+          const updated = clients.filter((c) => c.id !== id)
+          setClients(updated)
+          saveClients(updated)
+          pushCloudData({ appointments, clients: updated, settings }).then(() => {
+            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+          })
+        }}
         onNewAppointmentWithClient={handleNewAppointmentWithClient}
       />
 
@@ -310,8 +443,14 @@ export default function App() {
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         settings={settings}
-        onSaveSettings={setSettings}
-        onTriggerSync={handleTriggerSync}
+        onSaveSettings={(newSettings) => {
+          setSettings(newSettings)
+          saveSettings(newSettings)
+          pushCloudData({ appointments, clients, settings: newSettings }).then(() => {
+            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+          })
+        }}
+        onTriggerSync={() => handleTriggerSync(true)}
         isSyncing={isSyncing}
       />
     </div>

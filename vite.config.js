@@ -9,5 +9,14 @@ export default defineConfig({
     tailwindcss(),
   ],
   base: './',
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/app-[hash].js`,
+        chunkFileNames: `assets/chunk-[hash].js`,
+        assetFileNames: `assets/style-[hash].[ext]`
+      }
+    }
+  }
 })
 

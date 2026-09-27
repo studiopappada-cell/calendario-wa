@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light !important;
+  color-scheme: only light !important;
 }
 
 html, body, #root {

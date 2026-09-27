@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -18,7 +18,9 @@ export default function Navbar({
   onOpenStats,
   onOpenSettings,
   appointmentsCount,
-  syncCode
+  isSyncing,
+  lastSyncTime,
+  onTriggerSync
 }) {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
@@ -69,17 +71,22 @@ export default function Navbar({
 
         {/* Pulsanti Azione Header */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Indicatore Stanza Cloud se attiva */}
-          {syncCode && (
-            <button
-              onClick={onOpenSettings}
-              className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-mono font-semibold border border-blue-200"
-              title="Sincronizzazione Cloud attiva"
-            >
-              <Cloud className="w-3.5 h-3.5 text-blue-600" />
-              <span>{syncCode}</span>
-            </button>
-          )}
+          {/* Indicatore Stato Sincronizzazione Cloud GitHub */}
+          <button
+            onClick={() => onTriggerSync && onTriggerSync(false)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+              isSyncing
+                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                : 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+            }`}
+            title="Clicca per sincronizzare subito tra PC e Smartphone"
+          >
+            <Cloud className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-blue-600' : 'text-emerald-600'}`} />
+            <span className="hidden sm:inline">
+              {isSyncing ? 'Sincronizzo...' : lastSyncTime ? `Sincronizzato (${lastSyncTime})` : 'Sincronizzato 🟢'}
+            </span>
+          </button>
+
 
           {/* Rubrica */}
           <button

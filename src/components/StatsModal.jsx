@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import { X, BarChart3, TrendingUp, CheckCircle, Clock, Calendar, Euro } from 'lucide-react'
 
 export default function StatsModal({ isOpen, onClose, appointments = [] }) {
@@ -24,20 +24,20 @@ export default function StatsModal({ isOpen, onClose, appointments = [] }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 flex flex-col">
-        {/* Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+        {/* Header Bianco Luminoso */}
+        <div className="bg-white border-b border-slate-100 text-slate-800 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="bg-indigo-600 p-2 rounded-xl">
-              <BarChart3 className="w-5 h-5 text-white" />
+            <div className="bg-indigo-50 text-indigo-600 p-2 rounded-xl border border-indigo-100">
+              <BarChart3 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold">Riepilogo & Statistiche</h2>
-              <p className="text-xs text-slate-400">Panoramica andamento appuntamenti</p>
+              <h2 className="text-base font-bold text-slate-900">Riepilogo & Statistiche</h2>
+              <p className="text-xs text-slate-500">Panoramica andamento appuntamenti</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

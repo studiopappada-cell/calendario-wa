@@ -1,7 +1,22 @@
-﻿import React, { useState, useEffect } from 'react'
-import { X, Calendar, Clock, User, Phone, Briefcase, FileText, Tag, Trash2, Send, Check } from 'lucide-react'
+﻿import React, { useState, useEffect, useMemo } from 'react'
+import {
+  X,
+  Calendar,
+  Clock,
+  User,
+  Phone,
+  Briefcase,
+  FileText,
+  Tag,
+  Trash2,
+  Send,
+  Check,
+  Users,
+  Search,
+  CheckCircle2,
+  UserPlus
+} from 'lucide-react'
 
-// Categorie predefinite di suggerimento
 const COMMON_SERVICES = [
   'Consulenza',
   'Appuntamento Generale',
@@ -35,8 +50,25 @@ export default function AppointmentModal({
     notes: ''
   })
 
-  const [filteredClients, setFilteredClients] = useState([])
-  const [showClientSuggestions, setShowClientSuggestions] = useState(false)
+  // Modalità di selezione cliente: 'select' (da rubrica) o 'manual' (scrivi a mano)
+  const [clientInputMode, setClientInputMode] = useState('select')
+  const [searchClientQuery, setSearchClientQuery] = useState('')
+  const [selectedClientId, setSelectedClientId] = useState('')
+
+  // Clienti ordinati alfabeticamente A-Z per il richiamo rapido
+  const sortedClients = useMemo(() => {
+    return [...clients].sort((a, b) =>
+      a.name.localeCompare(b.name, 'it', { sensitivity: 'base' })
+    )
+  }, [clients])
+
+  const filteredClientsList = useMemo(() => {
+    if (!searchClientQuery.trim()) return sortedClients
+    const q = searchClientQuery.toLowerCase()
+    return sortedClients.filter(
+      (c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q))
+    )
+  }, [sortedClients, searchClientQuery])
 
   useEffect(() => {
     if (appointmentToEdit) {
@@ -52,6 +84,7 @@ export default function AppointmentModal({
         price: appointmentToEdit.price !== undefined ? appointmentToEdit.price : '',
         notes: appointmentToEdit.notes || ''
       })
+      setClientInputMode('manual')
     } else {
       setFormData({
         clientName: '',
@@ -64,34 +97,35 @@ export default function AppointmentModal({
         price: '',
         notes: ''
       })
+      // Se ci sono clienti in rubrica, proponi subito la selezione da rubrica!
+      setClientInputMode(clients.length > 0 ? 'select' : 'manual')
+      setSelectedClientId('')
+      setSearchClientQuery('')
     }
-  }, [appointmentToEdit, initialDate, isOpen])
+  }, [appointmentToEdit, initialDate, isOpen, clients])
 
   if (!isOpen) return null
 
-  const handleNameChange = (e) => {
-    const value = e.target.value
-    setFormData((prev) => ({ ...prev, clientName: value }))
-
-    if (value.trim().length > 1) {
-      const matches = clients.filter((c) =>
-        c.name.toLowerCase().includes(value.toLowerCase())
-      )
-      setFilteredClients(matches)
-      setShowClientSuggestions(matches.length > 0)
-    } else {
-      setShowClientSuggestions(false)
-    }
-  }
-
+  // Selezione di un cliente dalla rubrica
   const handleSelectClient = (client) => {
+    if (!client) return
+    setSelectedClientId(client.id)
     setFormData((prev) => ({
       ...prev,
       clientName: client.name,
-      clientPhone: client.phone || prev.clientPhone,
+      clientPhone: client.phone || '',
       notes: client.notes ? (prev.notes ? `${prev.notes} | ${client.notes}` : client.notes) : prev.notes
     }))
-    setShowClientSuggestions(false)
+  }
+
+  const handleDropdownChange = (e) => {
+    const id = e.target.value
+    setSelectedClientId(id)
+    if (!id) return
+    const found = clients.find((c) => c.id === id)
+    if (found) {
+      handleSelectClient(found)
+    }
   }
 
   const calculateEndTime = () => {
@@ -106,7 +140,7 @@ export default function AppointmentModal({
   const handleSubmit = (e, andSendWhatsApp = false) => {
     if (e) e.preventDefault()
     if (!formData.clientName.trim() || !formData.date || !formData.time) {
-      alert('Compila il nome del cliente, la data e l\'ora.')
+      alert('Seleziona o inserisci il cliente, la data e l\'ora.')
       return
     }
 
@@ -124,24 +158,24 @@ export default function AppointmentModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
-        {/* Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-blue-600 p-2 rounded-xl">
-              <Calendar className="w-5 h-5 text-white" />
+        {/* Header Bianco Luminoso */}
+        <div className="bg-white border-b border-slate-100 text-slate-800 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-blue-50 text-blue-600 p-2 rounded-xl border border-blue-100">
+              <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold">
+              <h2 className="text-base font-bold text-slate-900">
                 {appointmentToEdit ? 'Modifica Appuntamento' : 'Nuovo Appuntamento'}
               </h2>
-              <p className="text-xs text-slate-400">
-                Inserisci i dati e programma il promemoria
+              <p className="text-xs text-slate-500">
+                Richiama un cliente dalla rubrica o inserisci un nuovo appuntamento
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -149,70 +183,135 @@ export default function AppointmentModal({
 
         {/* Form Body */}
         <form onSubmit={(e) => handleSubmit(e, false)} className="p-5 overflow-y-auto flex-1 space-y-4">
-          {/* Sezione Cliente */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Nome Cliente con autocompletamento rubrica */}
-            <div className="relative">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nome Cliente *
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  required
-                  placeholder="Es. Mario Rossi"
-                  value={formData.clientName}
-                  onChange={handleNameChange}
-                  onFocus={() => {
-                    if (formData.clientName.trim().length > 1 && filteredClients.length > 0) {
-                      setShowClientSuggestions(true)
-                    }
+          {/* SEZIONE 1: RICHIAMO CLIENTE DALLA RUBRICA */}
+          <div className="bg-blue-50/50 border border-blue-200/80 p-3.5 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-blue-600" />
+                <span>Cliente dell'Appuntamento</span>
+              </span>
+
+              {/* Selettore modalità: Rubrica o Manuale */}
+              <div className="flex items-center gap-1 bg-white p-0.5 rounded-xl border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setClientInputMode('select')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                    clientInputMode === 'select'
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Dalla Rubrica ({clients.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClientInputMode('manual')
+                    setSelectedClientId('')
                   }}
-                  className="w-full text-sm pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                    clientInputMode === 'manual'
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Nuovo a Mano
+                </button>
               </div>
+            </div>
 
-              {/* Suggerimenti rubrica */}
-              {showClientSuggestions && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-30 max-h-40 overflow-y-auto">
-                  {filteredClients.map((client) => (
-                    <button
-                      key={client.id}
-                      type="button"
-                      onClick={() => handleSelectClient(client)}
-                      className="w-full text-left px-3.5 py-2 text-xs hover:bg-blue-50 border-b border-slate-100 last:border-0 flex items-center justify-between"
-                    >
-                      <span className="font-semibold text-slate-800">{client.name}</span>
-                      <span className="text-slate-400 text-[11px]">{client.phone}</span>
-                    </button>
-                  ))}
+            {/* Opzione A: Menu e Ricerca da Rubrica */}
+            {clientInputMode === 'select' ? (
+              <div className="space-y-2">
+                {clients.length === 0 ? (
+                  <p className="text-xs text-slate-500 bg-white p-3 rounded-xl border border-slate-200">
+                    Non hai ancora contatti in rubrica. Passa a "Nuovo a Mano" per inserirlo, verrà salvato automaticamente anche nella rubrica!
+                  </p>
+                ) : (
+                  <>
+                    {/* Menu a tendina diretto con tutti i contatti */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                        Scegli dalla Rubrica:
+                      </label>
+                      <select
+                        value={selectedClientId}
+                        onChange={handleDropdownChange}
+                        className="w-full text-sm font-semibold p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                      >
+                        <option value="">-- Seleziona un cliente ({clients.length} in rubrica) --</option>
+                        {sortedClients.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            👤 {c.name} {c.phone ? `(${c.phone})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Badge di conferma selezione */}
+                    {formData.clientName && (
+                      <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center justify-between text-xs text-emerald-900 animate-in fade-in duration-150">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <div>
+                            <span className="font-bold text-slate-900">{formData.clientName}</span>
+                            {formData.clientPhone && (
+                              <span className="text-slate-600 ml-2">📞 {formData.clientPhone}</span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[10px] bg-emerald-200/60 text-emerald-800 font-bold px-2 py-0.5 rounded">
+                          Selezionato
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              /* Opzione B: Inserimento Manuale */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nome e Cognome *
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Es. Mario Rossi"
+                      value={formData.clientName}
+                      onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                      className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Telefono per WhatsApp */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Telefono (per WhatsApp) *
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-emerald-500 absolute left-3 top-3" />
-                <input
-                  type="tel"
-                  placeholder="Es. 3471234567"
-                  value={formData.clientPhone}
-                  onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
-                  className="w-full text-sm pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Telefono (per WhatsApp) *
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-emerald-500 absolute left-3 top-3" />
+                    <input
+                      type="tel"
+                      placeholder="Es. 3471234567"
+                      value={formData.clientPhone}
+                      onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
+                      className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Servizio / Categoria */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Servizio o Motivo Appuntamento
+              Servizio o Prestazione
             </label>
             <div className="relative mb-2">
               <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -221,17 +320,16 @@ export default function AppointmentModal({
                 placeholder="Es. Consulenza, Visita, Trattamento..."
                 value={formData.service}
                 onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-                className="w-full text-sm pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-sm pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
             </div>
-            {/* Tag rapidi servizio */}
             <div className="flex flex-wrap gap-1.5">
               {COMMON_SERVICES.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setFormData({ ...formData, service: s })}
-                  className={`text-[11px] px-2.5 py-1 rounded-full border transition ${
+                  className={`text-[11px] px-2.5 py-1 rounded-full border transition cursor-pointer ${
                     formData.service === s
                       ? 'bg-blue-50 border-blue-400 text-blue-700 font-semibold'
                       : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
@@ -254,7 +352,7 @@ export default function AppointmentModal({
                 required
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
             </div>
 
@@ -267,7 +365,7 @@ export default function AppointmentModal({
                 required
                 value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
             </div>
 
@@ -278,7 +376,7 @@ export default function AppointmentModal({
               <select
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
-                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
               >
                 <option value={15}>15 minuti</option>
                 <option value={30}>30 minuti</option>
@@ -308,7 +406,7 @@ export default function AppointmentModal({
                     key={st.id}
                     type="button"
                     onClick={() => setFormData({ ...formData, status: st.id })}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border text-center transition ${
+                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border text-center transition cursor-pointer ${
                       formData.status === st.id
                         ? `${st.color} font-bold shadow-xs ring-1 ring-inset ring-current`
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -329,7 +427,7 @@ export default function AppointmentModal({
                 placeholder="Es. 50"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
             </div>
           </div>
@@ -341,10 +439,10 @@ export default function AppointmentModal({
             </label>
             <textarea
               rows={2}
-              placeholder="Note interne o dettagli particolari per il cliente..."
+              placeholder="Note particolari per il cliente..."
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full text-sm p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full text-sm p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
             />
           </div>
         </form>
@@ -360,7 +458,7 @@ export default function AppointmentModal({
                   onClose()
                 }
               }}
-              className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition"
+              className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
               title="Elimina appuntamento"
             >
               <Trash2 className="w-5 h-5" />
@@ -373,16 +471,16 @@ export default function AppointmentModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 rounded-xl transition"
+              className="px-3.5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 rounded-xl transition cursor-pointer"
             >
               Chiudi
             </button>
 
-            {/* Tasto principale WhatsApp: Salva & Invia subito */}
+            {/* Salva & Invia subito WhatsApp */}
             <button
               type="button"
               onClick={(e) => handleSubmit(e, true)}
-              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-sm transition"
+              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-sm transition cursor-pointer"
               title="Salva l'appuntamento e apri la finestra WhatsApp"
             >
               <Send className="w-4 h-4" />
@@ -393,7 +491,7 @@ export default function AppointmentModal({
             <button
               type="button"
               onClick={(e) => handleSubmit(e, false)}
-              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl shadow-sm transition"
+              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl shadow-sm transition cursor-pointer"
             >
               <Check className="w-4 h-4" />
               <span>Salva</span>
