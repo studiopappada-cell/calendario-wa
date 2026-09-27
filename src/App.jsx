@@ -24,6 +24,7 @@ import AppointmentModal from './components/AppointmentModal'
 import WhatsAppModal from './components/WhatsAppModal'
 import ClientDirectoryModal from './components/ClientDirectoryModal'
 import StatsModal from './components/StatsModal'
+import SettingsModal from './components/SettingsModal'
 import ActiveAlertBanner from './components/ActiveAlertBanner'
 import NotificationPermissionBanner from './components/NotificationPermissionBanner'
 import {
