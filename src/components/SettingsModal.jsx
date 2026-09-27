@@ -28,12 +28,22 @@ export default function SettingsModal({
   onTriggerSync,
   isSyncing
 }) {
-  const [formData, setFormData] = useState({ ...settings })
+  const [formData, setFormData] = useState({ ...(settings || {}) })
+  const [ownerPhone, setOwnerPhone] = useState(() => loadOwnerPhone() || (settings && settings.ownerPhone) || '')
   const [activeTab, setActiveTab] = useState('templates') // templates, general, sync, backup, mobile
   const [copyCodeSuccess, setCopyCodeSuccess] = useState(false)
   const [importStatus, setImportStatus] = useState(null)
   const [testAlertResult, setTestAlertResult] = useState(null)
   const [isTestingAlert, setIsTestingAlert] = useState(false)
+
+  // Sincronizza lo stato quando il modale viene aperto
+  React.useEffect(() => {
+    if (isOpen) {
+      setFormData({ ...(settings || {}) })
+      setOwnerPhone(loadOwnerPhone() || (settings && settings.ownerPhone) || '')
+      setTestAlertResult(null)
+    }
+  }, [isOpen, settings])
 
   const handleTestAlert = async () => {
     setIsTestingAlert(true)
@@ -48,19 +58,15 @@ export default function SettingsModal({
     }
   }
 
-  if (!isOpen) return null
-
   const handleTemplateChange = (key, value) => {
     setFormData((prev) => ({
       ...prev,
       templates: {
-        ...prev.templates,
+        ...(prev.templates || {}),
         [key]: value
       }
     }))
   }
-
-  const [ownerPhone, setOwnerPhone] = useState(() => loadOwnerPhone() || settings.ownerPhone || '')
 
   const handleOwnerPhoneChange = (val) => {
     setOwnerPhone(val)
@@ -92,7 +98,7 @@ export default function SettingsModal({
     setFormData((prev) => ({
       ...prev,
       cloudSync: {
-        ...prev.cloudSync,
+        ...(prev.cloudSync || {}),
         syncCode: newCode,
         enabled: true
       }
@@ -124,6 +130,8 @@ export default function SettingsModal({
     }
     reader.readAsText(file)
   }
+
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
