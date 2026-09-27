@@ -1,4 +1,4 @@
-﻿{
+{
   "short_name": "Calendario WA",
   "name": "Agenda & Calendario con Promemoria WhatsApp",
   "icons": [
@@ -10,7 +10,7 @@
   ],
   "start_url": "./index.html",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#ffffff",
   "display": "standalone",
   "orientation": "portrait-primary"
 }

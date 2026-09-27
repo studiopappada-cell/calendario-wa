@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   loadAppointments,
   saveAppointments,
@@ -191,7 +191,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800 pb-16 md:pb-6">
+    <div className="min-h-screen bg-white flex flex-col text-slate-900 pb-16 md:pb-6">
       {/* Barra Superiore */}
       <Navbar
         currentView={currentView}
