@@ -42,12 +42,6 @@
   ],
   "clients": [
     {
-      "id": "c1",
-      "name": "Marco Rossi",
-      "phone": "3471234567",
-      "notes": "Cliente abituale"
-    },
-    {
       "id": "c2",
       "name": "Laura Bianchi",
       "phone": "3389876543",
