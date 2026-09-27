@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import { Calendar, ListOrdered, Plus, Users, Settings } from 'lucide-react'
 
 export default function BottomNavMobile({
@@ -6,7 +6,8 @@ export default function BottomNavMobile({
   onViewChange,
   onNewAppointment,
   onOpenClients,
-  onOpenSettings
+  onOpenSettings,
+  dueAlertsCount = 0
 }) {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-1.5 flex items-center justify-around safe-area-bottom">
@@ -14,11 +15,18 @@ export default function BottomNavMobile({
       <button
         type="button"
         onClick={() => onViewChange('agenda')}
-        className={`flex flex-col items-center py-1 px-2 rounded-xl transition ${
+        className={`relative flex flex-col items-center py-1 px-2 rounded-xl transition ${
           currentView === 'agenda' ? 'text-blue-600 font-bold' : 'text-slate-500'
         }`}
       >
-        <ListOrdered className="w-5 h-5" />
+        <div className="relative">
+          <ListOrdered className="w-5 h-5" />
+          {dueAlertsCount > 0 && (
+            <span className="absolute -top-1 -right-2 bg-rose-600 text-white text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center ring-1 ring-white">
+              {dueAlertsCount}
+            </span>
+          )}
+        </div>
         <span className="text-[10px] mt-0.5">Agenda</span>
       </button>
 

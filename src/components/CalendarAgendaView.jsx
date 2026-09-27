@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+import React, { useState } from 'react'
 import {
   MessageCircle,
   Calendar,
@@ -11,10 +11,13 @@ import {
   CalendarPlus,
   Edit2,
   User,
-  Sparkles
+  Sparkles,
+  Bell,
+  BellRing
 } from 'lucide-react'
 import { formatDateItalian } from '../utils/whatsapp'
 import { getGoogleCalendarLink, downloadICalendar } from '../utils/storage'
+import { isAppointmentAlertDue, ALERT_OPTIONS } from '../utils/notifications'
 
 export default function CalendarAgendaView({
   appointments = [],
@@ -51,6 +54,7 @@ export default function CalendarAgendaView({
       }
 
       // Filtro periodo
+      if (filterPeriod === 'alerts') return app.reminderAlert && app.reminderAlert !== 'none'
       if (filterPeriod === 'today') return app.date === todayStr
       if (filterPeriod === 'tomorrow') return app.date === tomorrowStr
       if (filterPeriod === 'week') return app.date >= todayStr && app.date <= next7DaysStr
@@ -85,6 +89,7 @@ export default function CalendarAgendaView({
           <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
             {[
               { id: 'all', label: 'Tutti' },
+              { id: 'alerts', label: '🔔 Con Alert' },
               { id: 'today', label: 'Oggi' },
               { id: 'tomorrow', label: 'Domani' },
               { id: 'week', label: '7 Giorni' },
@@ -189,9 +194,24 @@ export default function CalendarAgendaView({
                       </span>
                     </div>
 
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${statusBadge.color}`}>
-                      {statusBadge.text}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {app.reminderAlert && app.reminderAlert !== 'none' && (
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            isAppointmentAlertDue(app)
+                              ? 'bg-amber-500 text-white animate-pulse shadow-xs'
+                              : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          }`}
+                          title={`Avviso impostato: ${ALERT_OPTIONS.find((o) => o.id === app.reminderAlert)?.label || ''}`}
+                        >
+                          <Bell className="w-3 h-3" />
+                          <span>{ALERT_OPTIONS.find((o) => o.id === app.reminderAlert)?.label || 'Alert'}</span>
+                        </span>
+                      )}
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${statusBadge.color}`}>
+                        {statusBadge.text}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Nome Cliente & Servizio */}

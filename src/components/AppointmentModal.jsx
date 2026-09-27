@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   X,
   Calendar,
@@ -11,8 +11,11 @@ import {
   Send,
   Check,
   Users,
-  AlertCircle
+  AlertCircle,
+  Bell,
+  BellRing
 } from 'lucide-react'
+import { ALERT_OPTIONS, requestNotificationPermission } from '../utils/notifications'
 
 const COMMON_SERVICES = [
   'Consulenza',
@@ -44,7 +47,8 @@ export default function AppointmentModal({
     duration: 60,
     status: 'confirmed',
     price: '',
-    notes: ''
+    notes: '',
+    reminderAlert: '1d'
   })
 
   const [formError, setFormError] = useState('')
@@ -78,7 +82,8 @@ export default function AppointmentModal({
         duration: appointmentToEdit.duration || 60,
         status: appointmentToEdit.status || 'confirmed',
         price: appointmentToEdit.price !== undefined && appointmentToEdit.price !== null ? appointmentToEdit.price : '',
-        notes: appointmentToEdit.notes || ''
+        notes: appointmentToEdit.notes || '',
+        reminderAlert: appointmentToEdit.reminderAlert || 'none'
       })
     } else {
       setFormData({
@@ -90,7 +95,8 @@ export default function AppointmentModal({
         duration: 60,
         status: 'confirmed',
         price: '',
-        notes: ''
+        notes: '',
+        reminderAlert: '1d'
       })
     }
   }, [isOpen, appointmentToEdit, initialDate])
@@ -158,7 +164,8 @@ export default function AppointmentModal({
       time,
       duration: Number(formData.duration || 60),
       status: formData.status || 'confirmed',
-      notes: String(formData.notes || '').trim()
+      notes: String(formData.notes || '').trim(),
+      reminderAlert: formData.reminderAlert || 'none'
     }
 
     const saved = onSave(payload)
@@ -412,6 +419,57 @@ export default function AppointmentModal({
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
+            </div>
+          </div>
+
+          {/* SEZIONE PROMEMORIA ALERT PER IL CELLULARE */}
+          <div className="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                <BellRing className="w-4 h-4 text-amber-600" />
+                <span>Promemoria Alert Cellulare</span>
+              </label>
+              <button
+                type="button"
+                onClick={async () => {
+                  const perm = await requestNotificationPermission()
+                  if (perm === 'granted') {
+                    alert('Notifiche attivate con successo sul tuo dispositivo! 🔔')
+                  }
+                }}
+                className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 underline cursor-pointer"
+              >
+                Abilita su smartphone
+              </button>
+            </div>
+            <p className="text-[11px] text-amber-800/80">
+              Scegli quando far squillare o ricevere l'avviso promemoria sul tuo cellulare per questo appuntamento:
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {ALERT_OPTIONS.map((opt) => {
+                const isSelected = formData.reminderAlert === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, reminderAlert: opt.id })
+                      if (opt.id !== 'none') {
+                        requestNotificationPermission()
+                      }
+                    }}
+                    className={`py-2 px-2 rounded-xl text-xs font-semibold border transition text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-xs ring-2 ring-amber-300 font-bold scale-[1.02]'
+                        : 'bg-white border-amber-200 text-slate-700 hover:bg-amber-100/50'
+                    }`}
+                  >
+                    <span>{opt.id === 'none' ? '🔕' : '🔔'}</span>
+                    <span>{opt.label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 

@@ -208,6 +208,19 @@ export function downloadICalendar(appointment, businessName = '') {
     return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
   }
 
+  const alarmDaysMap = { '1d': 'P1D', '3d': 'P3D', '5d': 'P5D', '7d': 'P7D', '10d': 'P10D' }
+  const triggerDuration = alarmDaysMap[appointment.reminderAlert]
+
+  const alarmBlock = triggerDuration
+    ? [
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:Promemoria Appuntamento: ${appointment.clientName} (${appointment.service})`,
+        `TRIGGER:-${triggerDuration}`,
+        'END:VALARM'
+      ]
+    : []
+
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -222,6 +235,7 @@ export function downloadICalendar(appointment, businessName = '') {
     `DESCRIPTION:Cliente: ${appointment.clientName}\\nTel: ${appointment.clientPhone}\\nNote: ${appointment.notes || 'Nessuna'}`,
     `LOCATION:${businessName}`,
     'STATUS:CONFIRMED',
+    ...alarmBlock,
     'END:VEVENT',
     'END:VCALENDAR'
   ].join('\r\n')

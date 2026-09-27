@@ -25,6 +25,12 @@ import WhatsAppModal from './components/WhatsAppModal'
 import ClientDirectoryModal from './components/ClientDirectoryModal'
 import StatsModal from './components/StatsModal'
 import SettingsModal from './components/SettingsModal'
+import {
+  isAppointmentAlertDue,
+  showPhoneNotification,
+  requestNotificationPermission,
+  getDaysUntilAppointment
+} from './utils/notifications'
 
 // Merge intelligente: unisce le liste di appuntamenti senza perdere quelli locali
 // ed ESCLUDE categoricamente qualsiasi appuntamento precedentemente cancellato
@@ -292,6 +298,48 @@ export default function App() {
     saveClients(clients)
   }, [clients])
 
+  // Controllo automatico e invio delle notifiche promemoria sullo smartphone
+  useEffect(() => {
+    const checkAlerts = () => {
+      if (!Array.isArray(appointments) || appointments.length === 0) return
+
+      const todayStr = new Date().toISOString().split('T')[0]
+      appointments.forEach((app) => {
+        if (!app || !app.id || app.status === 'cancelled') return
+
+        if (isAppointmentAlertDue(app)) {
+          const notifiedKey = `alert_sent_${app.id}_${todayStr}`
+          const alreadySent = localStorage.getItem(notifiedKey)
+          if (!alreadySent) {
+            const daysLeft = getDaysUntilAppointment(app.date)
+            let alertMsg = ''
+            if (daysLeft === 0) {
+              alertMsg = `OGGI alle ${app.time}: appuntamento con ${app.clientName || 'Cliente'} (${app.service || 'Consulenza'})`
+            } else if (daysLeft === 1) {
+              alertMsg = `DOMANI alle ${app.time}: appuntamento con ${app.clientName || 'Cliente'} (${app.service || 'Consulenza'})`
+            } else {
+              alertMsg = `Mancano ${daysLeft} giorni: appuntamento il ${app.date} alle ${app.time} con ${app.clientName || 'Cliente'}`
+            }
+
+            showPhoneNotification(`🔔 Promemoria: ${app.clientName || 'Appuntamento'}`, alertMsg)
+            try {
+              localStorage.setItem(notifiedKey, 'true')
+            } catch (e) {}
+          }
+        }
+      })
+    }
+
+    // Controlla subito dopo 2 secondi dal montaggio, poi ripete ogni 15 minuti
+    const timeout = setTimeout(checkAlerts, 2000)
+    const alertInterval = setInterval(checkAlerts, 15 * 60 * 1000)
+
+    return () => {
+      clearTimeout(timeout)
+      clearInterval(alertInterval)
+    }
+  }, [appointments])
+
   // Creazione o Salvataggio Appuntamento (immediato e a prova di errore)
   const handleSaveAppointment = (appData) => {
     try {
@@ -305,7 +353,13 @@ export default function App() {
         time: String(appData.time || '10:00'),
         duration: Number(appData.duration || 60),
         status: String(appData.status || 'confirmed'),
+        reminderAlert: String(appData.reminderAlert || '1d'),
         notes: String(appData.notes || '').trim()
+      }
+
+      // Se è impostato un avviso, richiediamo l'autorizzazione alle notifiche sullo smartphone
+      if (sanitizedApp.reminderAlert && sanitizedApp.reminderAlert !== 'none') {
+        requestNotificationPermission().catch(() => {})
       }
 
       let updatedApps = []
@@ -451,6 +505,17 @@ export default function App() {
     window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now() + tokenPart
   }
 
+  const dueAlertsCount = appointments.filter(
+    (a) => a && a.status !== 'cancelled' && isAppointmentAlertDue(a)
+  ).length
+
+  const handleToggleAlerts = async () => {
+    try {
+      await requestNotificationPermission()
+    } catch (e) {}
+    setCurrentView('agenda')
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col text-slate-900 pb-16 md:pb-6" style={{ backgroundColor: '#ffffff' }}>
       {/* Barra Superiore */}
@@ -462,6 +527,8 @@ export default function App() {
         onOpenStats={() => setIsStatsModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         appointmentsCount={appointments.length}
+        dueAlertsCount={dueAlertsCount}
+        onToggleAlerts={handleToggleAlerts}
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
         onTriggerSync={() => handleTriggerSync(false)}
@@ -553,6 +620,7 @@ export default function App() {
         onNewAppointment={handleNewGenericAppointment}
         onOpenClients={() => setIsClientsModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        dueAlertsCount={dueAlertsCount}
       />
 
       {/* MODALI */}
