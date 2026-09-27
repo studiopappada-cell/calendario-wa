@@ -24,7 +24,7 @@
       "status": "confirmed",
       "price": 80,
       "notes": "Primo incontro di presentazione progetto.",
-      "createdAt": "2026-09-27T16:15:15.413Z"
+      "createdAt": "2026-09-27T16:27:36.547Z"
     }
   ],
   "clients": [
@@ -57,7 +57,7 @@
     "businessName": "Il Mio Studio",
     "businessPhone": "",
     "businessAddress": "Via Roma, 1",
-    "defaultPrefix": "+39",
+    "defaultPrefix": "+3966240",
     "defaultDuration": 60,
     "templates": {
       "reminder": "Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci. Buona giornata!",
@@ -69,8 +69,7 @@
       "enabled": false,
       "syncCode": "",
       "lastSync": null
-    }
-  },
-  "deletedAppIds": [],
-  "deletedClientIds": []
+    },
+    "ownerPhone": "3911166240"
+  }
 }
