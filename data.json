@@ -14,6 +14,7 @@
       "reminderAlert": "today"
     },
     {
+      "id": "app_1790531025179_pjdm",
       "clientName": "Raffaele Pappada",
       "clientPhone": "3911166240",
       "service": "Controllo",
@@ -23,8 +24,7 @@
       "status": "confirmed",
       "price": "",
       "notes": "fare richiesta al GdP di Trebisacce di trattazione scritta",
-      "reminderAlert": "today",
-      "id": "app_1790531025179_pjdm"
+      "reminderAlert": "today"
     }
   ],
   "clients": [
