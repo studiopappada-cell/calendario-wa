@@ -36,7 +36,6 @@ export function getSavedToken() {
     return ''
   }
 }
-}
 
 export function saveToken(t) {
   try {
