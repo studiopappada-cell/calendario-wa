@@ -1,6 +1,7 @@
 {
   "appointments": [
     {
+      "id": "app_1790524062868_9g3u",
       "clientName": "Raffaele Pappada",
       "clientPhone": "3911166240",
       "service": "Visita",
@@ -10,7 +11,7 @@
       "status": "pending",
       "price": "",
       "notes": "visita amplifon",
-      "id": "app_1790524062868_9g3u"
+      "reminderAlert": "1d"
     }
   ],
   "clients": [
@@ -31,6 +32,12 @@
       "name": "Giuseppe Verdi",
       "phone": "3201122334",
       "notes": ""
+    },
+    {
+      "id": "c_1790525420050",
+      "name": "Raffaele Pappada",
+      "phone": "3911166240",
+      "notes": ""
     }
   ],
   "settings": {
@@ -50,11 +57,5 @@
       "syncCode": "",
       "lastSync": null
     }
-  },
-  "deletedAppIds": [
-    "demo-1",
-    "demo-2",
-    "demo-3"
-  ],
-  "deletedClientIds": []
+  }
 }
