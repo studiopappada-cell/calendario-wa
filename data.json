@@ -42,12 +42,6 @@
   ],
   "clients": [
     {
-      "id": "c2",
-      "name": "Laura Bianchi",
-      "phone": "3389876543",
-      "notes": "Preferisce il pomeriggio"
-    },
-    {
       "id": "c3",
       "name": "Giuseppe Verdi",
       "phone": "3201122334",
