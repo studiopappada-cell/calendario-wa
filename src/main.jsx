@@ -22,17 +22,34 @@ class ErrorBoundary extends Component {
       return (
         <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <h2 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>Si è verificato un imprevisto</h2>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem', maxWidth: '400px' }}>
+          <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1rem', maxWidth: '400px' }}>
             L'applicazione ha riscontrato un errore temporaneo durante il caricamento della vista.
           </p>
-          <button
-            onClick={() => {
-              window.location.reload()
-            }}
-            style={{ padding: '0.6rem 1.2rem', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            Ricarica Calendario
-          </button>
+          <div style={{ color: '#dc2626', backgroundColor: '#fee2e2', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontFamily: 'monospace', fontSize: '0.8rem', maxWidth: '500px', wordBreak: 'break-word', marginBottom: '1.5rem', textAlign: 'left' }}>
+            {String(this.state.error?.message || this.state.error || 'Errore di inizializzazione')}
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => {
+                window.location.reload()
+              }}
+              style={{ padding: '0.6rem 1.2rem', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              Ricarica Calendario
+            </button>
+            <button
+              onClick={() => {
+                if ('caches' in window) {
+                  caches.keys().then((names) => names.forEach((n) => caches.delete(n)))
+                }
+                const tokenPart = window.location.hash || ''
+                window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now() + tokenPart
+              }}
+              style={{ padding: '0.6rem 1.2rem', backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              Aggiorna Cache
+            </button>
+          </div>
         </div>
       )
     }

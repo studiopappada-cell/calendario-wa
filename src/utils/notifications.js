@@ -201,37 +201,82 @@ export async function triggerTestAlert() {
   }
 }
 
-// Calcola quanti giorni mancano all'appuntamento rispetto alla data locale reale
+// Calcola quanti giorni mancano all'appuntamento rispetto alla data locale reale (null-safe al 100%)
 export function getDaysUntilAppointment(dateStr) {
   if (!dateStr) return null
-  const now = new Date()
-  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  try {
+    let cleanStr = ''
+    if (typeof dateStr === 'string') {
+      cleanStr = dateStr.trim()
+    } else if (dateStr instanceof Date) {
+      cleanStr = dateStr.toISOString().split('T')[0]
+    } else {
+      cleanStr = String(dateStr || '').trim()
+    }
 
-  const [y, m, d] = dateStr.split('-').map(Number)
-  if (!y || !m || !d) return null
-  const appDate = new Date(y, m - 1, d)
+    if (!cleanStr.includes('-')) return null
 
-  const diffTime = appDate.getTime() - todayDate.getTime()
-  return Math.round(diffTime / (1000 * 60 * 60 * 24))
+    const parts = cleanStr.split('T')[0].split('-').map(Number)
+    if (parts.length < 3) return null
+    const [y, m, d] = parts
+    if (!y || !m || !d || isNaN(y) || isNaN(m) || isNaN(d)) return null
+
+    const now = new Date()
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const appDate = new Date(y, m - 1, d)
+    if (isNaN(appDate.getTime())) return null
+
+    const diffTime = appDate.getTime() - todayDate.getTime()
+    return Math.round(diffTime / (1000 * 60 * 60 * 24))
+  } catch (e) {
+    return null
+  }
 }
 
-// Verifica dettagliata se un appuntamento deve emettere un alert oggi
+// Verifica dettagliata se un appuntamento deve emettere un alert oggi (null-safe al 100%)
 export function isAppointmentAlertDue(appointment) {
-  if (!appointment || !appointment.reminderAlert || appointment.reminderAlert === 'none') {
-    return null
-  }
+  if (!appointment || typeof appointment !== 'object') return null
+  try {
+    if (!appointment.reminderAlert || appointment.reminderAlert === 'none') {
+      return null
+    }
 
-  const option = ALERT_OPTIONS.find((o) => o.id === appointment.reminderAlert)
-  if (!option || option.days < 0) return null
+    const option = ALERT_OPTIONS.find((o) => o.id === appointment.reminderAlert)
+    if (!option || option.days < 0) return null
 
-  const daysLeft = getDaysUntilAppointment(appointment.date)
-  if (daysLeft === null || daysLeft < 0) {
-    // Appuntamento già passato nei giorni precedenti
-    return null
-  }
+    const daysLeft = getDaysUntilAppointment(appointment.date)
+    if (daysLeft === null || daysLeft < 0) {
+      // Appuntamento già passato nei giorni precedenti
+      return null
+    }
 
-  // 1. Se l'alert è impostato per 'today' (il giorno stesso)
-  if (option.id === 'today') {
+    // 1. Se l'alert è impostato per 'today' (il giorno stesso)
+    if (option.id === 'today') {
+      if (daysLeft === 0) {
+        return {
+          isDue: true,
+          daysLeft: 0,
+          type: 'today',
+          title: `🔔 Appuntamento OGGI alle ${appointment.time || '10:00'}!`,
+          message: `OGGI alle ore ${appointment.time || '10:00'}: appuntamento con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
+        }
+      }
+      return null
+    }
+
+    // 2. Se l'alert è con preavviso di N giorni (es. 1d, 3d, 5d, 7d, 10d)
+    if (daysLeft === option.days) {
+      const daysLabel = daysLeft === 1 ? 'DOMANI' : `tra ${daysLeft} giorni`
+      return {
+        isDue: true,
+        daysLeft,
+        type: 'advance',
+        title: `🔔 Promemoria: Appuntamento ${daysLabel}!`,
+        message: `Appuntamento ${daysLabel} (${appointment.date} alle ore ${appointment.time || '10:00'}) con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
+      }
+    }
+
+    // 3. Se mancano meno giorni del preavviso impostato (es. l'utente ha impostato 3 giorni prima ma oggi è già il giorno stesso)
     if (daysLeft === 0) {
       return {
         isDue: true,
@@ -241,43 +286,22 @@ export function isAppointmentAlertDue(appointment) {
         message: `OGGI alle ore ${appointment.time || '10:00'}: appuntamento con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
       }
     }
+
+    // 4. Se mancano meno giorni del preavviso (es. creato con anticipo già scaduto ma non passato)
+    if (daysLeft < option.days && daysLeft > 0) {
+      const daysLabel = daysLeft === 1 ? 'DOMANI' : `tra ${daysLeft} giorni`
+      return {
+        isDue: true,
+        daysLeft,
+        type: 'advance',
+        title: `🔔 Promemoria Imminente: Appuntamento ${daysLabel}!`,
+        message: `Appuntamento ${daysLabel} (${appointment.date} alle ore ${appointment.time || '10:00'}) con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
+      }
+    }
+
+    return null
+  } catch (err) {
+    console.warn('Errore in isAppointmentAlertDue:', err)
     return null
   }
-
-  // 2. Se l'alert è con preavviso di N giorni (es. 1d, 3d, 5d, 7d, 10d)
-  if (daysLeft === option.days) {
-    const daysLabel = daysLeft === 1 ? 'DOMANI' : `tra ${daysLeft} giorni`
-    return {
-      isDue: true,
-      daysLeft,
-      type: 'advance',
-      title: `🔔 Promemoria: Appuntamento ${daysLabel}!`,
-      message: `Appuntamento ${daysLabel} (${appointment.date} alle ore ${appointment.time || '10:00'}) con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
-    }
-  }
-
-  // 3. Se mancano meno giorni del preavviso impostato (es. l'utente ha impostato 3 giorni prima ma oggi è già il giorno stesso)
-  if (daysLeft === 0) {
-    return {
-      isDue: true,
-      daysLeft: 0,
-      type: 'today',
-      title: `🔔 Appuntamento OGGI alle ${appointment.time || '10:00'}!`,
-      message: `OGGI alle ore ${appointment.time || '10:00'}: appuntamento con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
-    }
-  }
-
-  // 4. Se mancano meno giorni del preavviso (es. creato con anticipo già scaduto ma non passato)
-  if (daysLeft < option.days && daysLeft > 0) {
-    const daysLabel = daysLeft === 1 ? 'DOMANI' : `tra ${daysLeft} giorni`
-    return {
-      isDue: true,
-      daysLeft,
-      type: 'advance',
-      title: `🔔 Promemoria Imminente: Appuntamento ${daysLabel}!`,
-      message: `Appuntamento ${daysLabel} (${appointment.date} alle ore ${appointment.time || '10:00'}) con ${appointment.clientName || 'Cliente'} (${appointment.service || 'Consulenza'})`
-    }
-  }
-
-  return null
 }
