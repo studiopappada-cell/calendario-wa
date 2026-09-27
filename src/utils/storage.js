@@ -1,12 +1,13 @@
-﻿/**
+/**
  * Utility per la persistenza dei dati e sincronizzazione
  */
 
 const STORAGE_KEY_APPOINTMENTS = 'wa_calendar_appointments_v1'
 const STORAGE_KEY_SETTINGS = 'wa_calendar_settings_v1'
 const STORAGE_KEY_CLIENTS = 'wa_calendar_clients_v1'
+const STORAGE_KEY_DELETED_APPS = 'wa_calendar_deleted_apps_v1'
+const STORAGE_KEY_DELETED_CLIENTS = 'wa_calendar_deleted_clients_v1'
 
-// Dati iniziali di esempio se il calendario è vuoto
 export const INITIAL_APPOINTMENTS = [
   {
     id: 'demo-1',
@@ -19,32 +20,6 @@ export const INITIAL_APPOINTMENTS = [
     status: 'confirmed',
     price: 80,
     notes: 'Primo incontro di presentazione progetto.',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'demo-2',
-    clientName: 'Laura Bianchi',
-    clientPhone: '3389876543',
-    service: 'Trattamento / Servizio',
-    date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    time: '15:30',
-    duration: 45,
-    status: 'pending',
-    price: 50,
-    notes: 'Richiesta conferma via WhatsApp.',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'demo-3',
-    clientName: 'Giuseppe Verdi',
-    clientPhone: '3201122334',
-    service: 'Revisione Documenti',
-    date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
-    time: '11:00',
-    duration: 30,
-    status: 'confirmed',
-    price: 40,
-    notes: 'Portare copia della documentazione cartacea.',
     createdAt: new Date().toISOString()
   }
 ]
@@ -63,21 +38,63 @@ export const INITIAL_SETTINGS = {
   },
   cloudSync: {
     enabled: false,
-    syncCode: '', // Codice univoco per sincronizzare più PC e smartphone
+    syncCode: '',
     lastSync: null
   }
 }
 
-// Carica appuntamenti da LocalStorage
+// Recupera l'elenco degli ID appuntamenti eliminati
+export function loadDeletedAppIds() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DELETED_APPS)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (e) {
+    return []
+  }
+}
+
+// Salva l'elenco degli ID appuntamenti eliminati
+export function saveDeletedAppIds(ids) {
+  try {
+    const safeList = Array.isArray(ids) ? ids.slice(-300) : [] // Conserva gli ultimi 300
+    localStorage.setItem(STORAGE_KEY_DELETED_APPS, JSON.stringify(safeList))
+  } catch (e) {}
+}
+
+// Recupera l'elenco degli ID clienti eliminati
+export function loadDeletedClientIds() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DELETED_CLIENTS)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (e) {
+    return []
+  }
+}
+
+// Salva l'elenco degli ID clienti eliminati
+export function saveDeletedClientIds(ids) {
+  try {
+    const safeList = Array.isArray(ids) ? ids.slice(-300) : []
+    localStorage.setItem(STORAGE_KEY_DELETED_CLIENTS, JSON.stringify(safeList))
+  } catch (e) {}
+}
+
+// Carica appuntamenti da LocalStorage (escludendo gli ID cancellati)
 export function loadAppointments() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_APPOINTMENTS)
-    if (!raw) return INITIAL_APPOINTMENTS
+    const deleted = new Set(loadDeletedAppIds())
+    if (!raw) return INITIAL_APPOINTMENTS.filter((a) => !deleted.has(a.id))
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : INITIAL_APPOINTMENTS
+    if (!Array.isArray(parsed)) return INITIAL_APPOINTMENTS.filter((a) => !deleted.has(a.id))
+    return parsed.filter((a) => a && a.id && !deleted.has(a.id))
   } catch (e) {
     console.error('Errore durante il caricamento degli appuntamenti:', e)
-    return INITIAL_APPOINTMENTS
+    return []
   }
 }
 
@@ -122,7 +139,9 @@ export function loadClients() {
         { id: 'c3', name: 'Giuseppe Verdi', phone: '3201122334', notes: '' }
       ]
     }
-    return JSON.parse(raw)
+    const parsed = JSON.parse(raw)
+    const deleted = new Set(loadDeletedClientIds())
+    return Array.isArray(parsed) ? parsed.filter((c) => c && c.id && !deleted.has(c.id)) : []
   } catch (e) {
     return []
   }
