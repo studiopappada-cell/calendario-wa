@@ -27,6 +27,7 @@
       "createdAt": "2026-09-27T17:28:10.669Z"
     },
     {
+      "id": "app_1790527973886_4r6o",
       "clientName": "Raffaele Pappada",
       "clientPhone": "3911166240",
       "service": "Visita",
@@ -36,8 +37,7 @@
       "status": "confirmed",
       "price": "",
       "notes": "",
-      "reminderAlert": "today",
-      "id": "app_1790527973886_4r6o"
+      "reminderAlert": "today"
     },
     {
       "clientName": "Raffaele Pappada",
