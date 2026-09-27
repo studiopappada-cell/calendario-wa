@@ -11,7 +11,7 @@
       "status": "pending",
       "price": "",
       "notes": "visita amplifon",
-      "reminderAlert": "1d"
+      "reminderAlert": "today"
     }
   ],
   "clients": [
