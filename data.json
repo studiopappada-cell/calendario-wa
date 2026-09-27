@@ -25,19 +25,6 @@
       "notes": "",
       "reminderAlert": "today",
       "id": "app_1790528484779_6hld"
-    },
-    {
-      "clientName": "Raffaele Pappada",
-      "clientPhone": "3911166240",
-      "service": "Consulenza",
-      "date": "2026-09-27",
-      "time": "10:00",
-      "duration": 60,
-      "status": "confirmed",
-      "price": "",
-      "notes": "",
-      "reminderAlert": "today",
-      "id": "app_1790530844953_02kt"
     }
   ],
   "clients": [
@@ -89,7 +76,8 @@
     "demo-1",
     "app_1790527973886_4r6o",
     "app_1790528823866_1rd1",
-    "app_1790530116065_96af"
+    "app_1790530116065_96af",
+    "app_1790530844953_02kt"
   ],
   "deletedClientIds": []
 }
