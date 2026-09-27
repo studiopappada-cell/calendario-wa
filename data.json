@@ -41,12 +41,6 @@
       "notes": "Preferisce il pomeriggio"
     },
     {
-      "id": "c3",
-      "name": "Giuseppe Verdi",
-      "phone": "3201122334",
-      "notes": ""
-    },
-    {
       "id": "c_1790525420050",
       "name": "Raffaele Pappada",
       "phone": "3911166240",
@@ -79,5 +73,7 @@
     "app_1790528484779_6hld",
     "app_1790527973886_4r6o"
   ],
-  "deletedClientIds": []
+  "deletedClientIds": [
+    "c3"
+  ]
 }
