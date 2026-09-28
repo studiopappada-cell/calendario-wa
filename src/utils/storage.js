@@ -21,13 +21,27 @@ export const DEFAULT_SERVICES = [
   'Appuntamento Generale'
 ]
 
+export function toLocalDateString(d = new Date()) {
+  if (!d) return ''
+  if (typeof d === 'string') {
+    const match = d.match(/^\d{4}-\d{2}-\d{2}/)
+    if (match) return match[0]
+  }
+  const dateObj = d instanceof Date ? d : new Date(d)
+  if (isNaN(dateObj.getTime())) return ''
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export const INITIAL_APPOINTMENTS = [
   {
     id: 'demo-1',
     clientName: 'Marco Rossi',
     clientPhone: '3471234567',
     service: 'Consulenza Legale',
-    date: new Date().toISOString().split('T')[0],
+    date: toLocalDateString(new Date()),
     time: '10:00',
     duration: 60,
     status: 'confirmed',
