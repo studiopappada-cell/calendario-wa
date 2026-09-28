@@ -38,6 +38,19 @@
       "notes": "Viaggio a Milano",
       "reminderAlert": "1d",
       "id": "app_1790569193575_e6nf"
+    },
+    {
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Udienza / Tribunale",
+      "date": "2026-09-30",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "Deposito perizia da parte del CTU incaricato dal tribunale di Brindisi causa Capobianco vs Pappadà",
+      "reminderAlert": "today",
+      "id": "app_1790588067424_7bss"
     }
   ],
   "clients": [
@@ -172,6 +185,24 @@
       "name": "Zia Rosaria",
       "phone": "3933277313",
       "notes": ""
+    },
+    {
+      "id": "c1",
+      "name": "Marco Rossi",
+      "phone": "3471234567",
+      "notes": "Cliente abituale"
+    },
+    {
+      "id": "c2",
+      "name": "Laura Bianchi",
+      "phone": "3389876543",
+      "notes": "Preferisce il pomeriggio"
+    },
+    {
+      "id": "c3",
+      "name": "Giuseppe Verdi",
+      "phone": "3201122334",
+      "notes": ""
     }
   ],
   "settings": {
@@ -203,16 +234,5 @@
       "syncCode": "",
       "lastSync": null
     }
-  },
-  "services": [
-    "Consulenza Legale",
-    "Consulenza Fiscale",
-    "Appuntamento in Studio",
-    "Udienza / Tribunale",
-    "Firma Documenti",
-    "Dichiarazione Redditi",
-    "Ricorso / Pratica",
-    "Riunione",
-    "Appuntamento Generale"
-  ]
+  }
 }
