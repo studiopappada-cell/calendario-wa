@@ -9,7 +9,9 @@ import {
   loadDeletedAppIds,
   saveDeletedAppIds,
   loadDeletedClientIds,
-  saveDeletedClientIds
+  saveDeletedClientIds,
+  loadServices,
+  saveServices
 } from './utils/storage'
 import { fetchCloudData, pushCloudData } from './utils/githubSync'
 
@@ -87,6 +89,7 @@ export default function App() {
   const [appointments, setAppointments] = useState(() => loadAppointments())
   const [settings, setSettings] = useState(() => loadSettings())
   const [clients, setClients] = useState(() => loadClients())
+  const [services, setServices] = useState(() => loadServices())
   const [deletedAppIds, setDeletedAppIds] = useState(() => loadDeletedAppIds())
   const [deletedClientIds, setDeletedClientIds] = useState(() => loadDeletedClientIds())
 
@@ -213,6 +216,20 @@ export default function App() {
             saveSettings(cloudData.settings)
           }
 
+          if (Array.isArray(cloudData.services) && cloudData.services.length > 0) {
+            const cleanSvc = cloudData.services.filter(s => typeof s === 'string' && !s.toLowerCase().includes('taglio'))
+            if (cleanSvc.length > 0) {
+              setServices(cleanSvc)
+              saveServices(cleanSvc)
+            }
+          } else if (cloudData.settings?.services && Array.isArray(cloudData.settings.services)) {
+            const cleanSvc = cloudData.settings.services.filter(s => typeof s === 'string' && !s.toLowerCase().includes('taglio'))
+            if (cleanSvc.length > 0) {
+              setServices(cleanSvc)
+              saveServices(cleanSvc)
+            }
+          }
+
           setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
           setSyncStatus('online')
         } else {
@@ -221,6 +238,7 @@ export default function App() {
             appointments,
             clients,
             settings,
+            services: loadServices(),
             deletedAppIds: loadDeletedAppIds(),
             deletedClientIds: loadDeletedClientIds()
           })
@@ -333,6 +351,19 @@ export default function App() {
             setSettings(res.data.settings)
             saveSettings(res.data.settings)
           }
+          if (Array.isArray(res.data.services) && res.data.services.length > 0) {
+            const cleanSvc = res.data.services.filter(s => typeof s === 'string' && !s.toLowerCase().includes('taglio'))
+            if (cleanSvc.length > 0) {
+              setServices(cleanSvc)
+              saveServices(cleanSvc)
+            }
+          } else if (res.data.settings?.services && Array.isArray(res.data.settings.services)) {
+            const cleanSvc = res.data.settings.services.filter(s => typeof s === 'string' && !s.toLowerCase().includes('taglio'))
+            if (cleanSvc.length > 0) {
+              setServices(cleanSvc)
+              saveServices(cleanSvc)
+            }
+          }
           setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
           setSyncStatus('online')
         }
@@ -343,6 +374,22 @@ export default function App() {
     } finally {
       setIsSyncing(false)
     }
+  }
+
+  const handleUpdateServices = (newServices) => {
+    const saved = saveServices(newServices)
+    setServices(saved)
+    const updatedSettings = { ...settings, services: saved }
+    setSettings(updatedSettings)
+    saveSettings(updatedSettings)
+    pushCloudData({
+      appointments: loadAppointments(),
+      clients: loadClients(),
+      settings: updatedSettings,
+      services: saved,
+      deletedAppIds: loadDeletedAppIds(),
+      deletedClientIds: loadDeletedClientIds()
+    })
   }
 
   // Persistenza locale automatica
@@ -371,7 +418,7 @@ export default function App() {
         id: appData.id || 'app_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         clientName: String(appData.clientName || '').trim(),
         clientPhone: String(appData.clientPhone || '').trim(),
-        service: String(appData.service || 'Consulenza').trim(),
+        service: String(appData.service || services[0] || 'Consulenza Legale').trim(),
         date: String(appData.date || getLocalTodayString()),
         time: String(appData.time || '10:00'),
         duration: Number(appData.duration || 60),
@@ -506,7 +553,7 @@ export default function App() {
       id: 'app_' + Date.now(),
       clientName: client.name,
       clientPhone: client.phone || '',
-      service: 'Consulenza',
+      service: services[0] || 'Consulenza Legale',
       date: new Date().toISOString().split('T')[0],
       time: '10:00',
       duration: 60,
@@ -748,6 +795,8 @@ export default function App() {
         appointmentToEdit={editingAppointment}
         clients={clients}
         onOpenWhatsApp={handleOpenWhatsApp}
+        services={services}
+        onUpdateServices={handleUpdateServices}
       />
 
       {/* 2. Modale WhatsApp (Il fulcro della richiesta) */}
@@ -776,7 +825,7 @@ export default function App() {
           }
           setClients(updatedClients)
           saveClients(updatedClients)
-          pushCloudData({ appointments, clients: updatedClients, settings }).then(() => {
+          pushCloudData({ appointments, clients: updatedClients, settings, services }).then(() => {
             setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
           })
         }}
@@ -795,6 +844,7 @@ export default function App() {
             appointments,
             clients: updated,
             settings,
+            services,
             deletedAppIds: loadDeletedAppIds(),
             deletedClientIds: updatedDeleted
           }).then((res) => {
@@ -824,7 +874,17 @@ export default function App() {
         onSaveSettings={(newSettings) => {
           setSettings(newSettings)
           saveSettings(newSettings)
-          pushCloudData({ appointments, clients, settings: newSettings }).then(() => {
+          if (Array.isArray(newSettings.services)) {
+            setServices(newSettings.services)
+          }
+          pushCloudData({
+            appointments,
+            clients,
+            settings: newSettings,
+            services: newSettings.services || services,
+            deletedAppIds: loadDeletedAppIds(),
+            deletedClientIds: loadDeletedClientIds()
+          }).then(() => {
             setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
           })
         }}
