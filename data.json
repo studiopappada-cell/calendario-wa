@@ -234,5 +234,9 @@
       "syncCode": "",
       "lastSync": null
     }
-  }
+  },
+  "deletedAppIds": [
+    "demo-1"
+  ],
+  "deletedClientIds": []
 }
