@@ -305,12 +305,14 @@ export default function App() {
           const activeDelClientSet = new Set(allDelClients)
 
           if (Array.isArray(res.data.clients)) {
-            const mergedClients = mergeClients(clients, res.data.clients, activeDelClientSet)
+            const currentLocalClients = loadClients().filter((c) => c && !activeDelClientSet.has(c.id))
+            const mergedClients = mergeClients(currentLocalClients, res.data.clients, activeDelClientSet)
             setClients(mergedClients)
             saveClients(mergedClients)
           }
           if (Array.isArray(res.data.appointments)) {
-            const mergedApps = mergeAppointments(appointments, res.data.appointments, activeDelAppSet)
+            const currentLocalApps = loadAppointments().filter((a) => a && !activeDelAppSet.has(a.id))
+            const mergedApps = mergeAppointments(currentLocalApps, res.data.appointments, activeDelAppSet)
             setAppointments(mergedApps)
             saveAppointments(mergedApps)
 
@@ -320,7 +322,7 @@ export default function App() {
             if (mergedApps.length > (res.data.appointments?.length || 0)) {
               pushCloudData({
                 appointments: mergedApps,
-                clients,
+                clients: loadClients(),
                 settings,
                 deletedAppIds: allDelApps,
                 deletedClientIds: allDelClients
@@ -383,12 +385,13 @@ export default function App() {
         requestNotificationPermission().catch(() => {})
       }
 
+      const currentApps = loadAppointments()
       let updatedApps = []
-      const exists = appointments.some((a) => a.id === sanitizedApp.id)
+      const exists = currentApps.some((a) => a.id === sanitizedApp.id)
       if (exists) {
-        updatedApps = appointments.map((a) => (a.id === sanitizedApp.id ? sanitizedApp : a))
+        updatedApps = currentApps.map((a) => (a.id === sanitizedApp.id ? sanitizedApp : a))
       } else {
-        updatedApps = [...appointments, sanitizedApp]
+        updatedApps = [...currentApps, sanitizedApp]
       }
 
       // 1. Aggiorna lo stato React
@@ -399,11 +402,12 @@ export default function App() {
       // 3. Esegue subito il controllo alert per emettere suono, vibrazione o banner se dovuto oggi o imminente
       checkAndTriggerAlerts(updatedApps)
 
-      let updatedClients = [...clients]
+      const currentClients = loadClients()
+      let updatedClients = [...currentClients]
       // 3. Se il cliente non è ancora in rubrica, aggiungilo in rubrica
       if (sanitizedApp.clientName) {
         const targetName = sanitizedApp.clientName.toLowerCase()
-        const clientExists = clients.some(
+        const clientExists = currentClients.some(
           (c) => String(c?.name || '').toLowerCase() === targetName
         )
         if (!clientExists) {
@@ -413,7 +417,7 @@ export default function App() {
             phone: sanitizedApp.clientPhone || '',
             notes: ''
           }
-          updatedClients = [...clients, newClient]
+          updatedClients = [...currentClients, newClient]
           setClients(updatedClients)
           saveClients(updatedClients)
         }
