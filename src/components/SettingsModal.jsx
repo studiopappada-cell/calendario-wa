@@ -13,9 +13,21 @@ import {
   Share2,
   Copy,
   Bell,
-  Volume2
+  Volume2,
+  Briefcase,
+  Plus,
+  Trash2,
+  RotateCcw
 } from 'lucide-react'
-import { exportDataAsJSON, importDataFromJSON, loadOwnerPhone, saveOwnerPhone } from '../utils/storage'
+import {
+  exportDataAsJSON,
+  importDataFromJSON,
+  loadOwnerPhone,
+  saveOwnerPhone,
+  loadServices,
+  saveServices,
+  DEFAULT_SERVICES
+} from '../utils/storage'
 import { generateRoomCode } from '../utils/cloudSync'
 import { triggerTestAlert } from '../utils/notifications'
 import { buildTestAlertWhatsAppLink } from '../utils/whatsapp'
@@ -30,7 +42,14 @@ export default function SettingsModal({
 }) {
   const [formData, setFormData] = useState({ ...(settings || {}) })
   const [ownerPhone, setOwnerPhone] = useState(() => loadOwnerPhone() || (settings && settings.ownerPhone) || '')
-  const [activeTab, setActiveTab] = useState('templates') // templates, general, sync, backup, mobile
+  const [servicesList, setServicesList] = useState(() => {
+    if (settings && Array.isArray(settings.services) && settings.services.length > 0) {
+      return settings.services
+    }
+    return loadServices()
+  })
+  const [newServiceInput, setNewServiceInput] = useState('')
+  const [activeTab, setActiveTab] = useState('templates') // templates, services, general, sync, mobile, backup
   const [copyCodeSuccess, setCopyCodeSuccess] = useState(false)
   const [importStatus, setImportStatus] = useState(null)
   const [testAlertResult, setTestAlertResult] = useState(null)
@@ -41,9 +60,47 @@ export default function SettingsModal({
     if (isOpen) {
       setFormData({ ...(settings || {}) })
       setOwnerPhone(loadOwnerPhone() || (settings && settings.ownerPhone) || '')
+      setServicesList(
+        settings && Array.isArray(settings.services) && settings.services.length > 0
+          ? settings.services
+          : loadServices()
+      )
+      setNewServiceInput('')
       setTestAlertResult(null)
     }
   }, [isOpen, settings])
+
+  const handleAddService = (e) => {
+    if (e) e.preventDefault()
+    const clean = newServiceInput.trim()
+    if (!clean) return
+    const exists = servicesList.some((s) => s.toLowerCase() === clean.toLowerCase())
+    if (exists) {
+      setNewServiceInput('')
+      return
+    }
+    const updated = [...servicesList, clean]
+    setServicesList(updated)
+    saveServices(updated)
+    setFormData((prev) => ({ ...prev, services: updated }))
+    setNewServiceInput('')
+  }
+
+  const handleRemoveService = (serviceToRemove) => {
+    const updated = servicesList.filter((s) => s !== serviceToRemove)
+    const finalServices = updated.length > 0 ? updated : DEFAULT_SERVICES
+    setServicesList(finalServices)
+    saveServices(finalServices)
+    setFormData((prev) => ({ ...prev, services: finalServices }))
+  }
+
+  const handleResetServices = () => {
+    if (confirm('Vuoi ripristinare le prestazioni predefinite per studio professionale?')) {
+      setServicesList(DEFAULT_SERVICES)
+      saveServices(DEFAULT_SERVICES)
+      setFormData((prev) => ({ ...prev, services: DEFAULT_SERVICES }))
+    }
+  }
 
   const handleTestAlert = async () => {
     setIsTestingAlert(true)
@@ -89,7 +146,8 @@ export default function SettingsModal({
 
   const handleSave = () => {
     saveOwnerPhone(ownerPhone)
-    onSaveSettings({ ...formData, ownerPhone })
+    saveServices(servicesList)
+    onSaveSettings({ ...formData, ownerPhone, services: servicesList })
     onClose()
   }
 
@@ -159,6 +217,7 @@ export default function SettingsModal({
         <div className="flex border-b border-slate-100 bg-slate-50 text-xs font-semibold overflow-x-auto">
           {[
             { id: 'templates', label: 'Modelli WhatsApp', icon: MessageCircle },
+            { id: 'services', label: 'Prestazioni & Servizi', icon: Briefcase },
             { id: 'sync', label: 'PC & Smartphone Sync', icon: Cloud },
             { id: 'general', label: 'Studio & Prefisso', icon: Building },
             { id: 'mobile', label: 'Notifiche & Telefono', icon: Bell },
@@ -232,6 +291,91 @@ export default function SettingsModal({
                   onChange={(e) => handleTemplateChange('thankyou', e.target.value)}
                   className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
                 />
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: Prestazioni & Servizi */}
+          {activeTab === 'services' && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 p-3.5 rounded-2xl text-xs text-blue-900 space-y-1">
+                <h4 className="font-bold flex items-center gap-1.5 text-blue-950">
+                  <Briefcase className="w-4 h-4 text-blue-600" /> Prestazioni e Servizi dello Studio
+                </h4>
+                <p>
+                  Questi servizi appaiono come pulsanti di selezione rapida quando inserisci un nuovo appuntamento.
+                  Puoi aggiungerne di nuovi, rimuovere quelli che non ti servono o ripristinare i valori predefiniti per studio legale/professionale.
+                  Vengono sincronizzati automaticamente su tutti i tuoi dispositivi (PC e Smartphone).
+                </p>
+              </div>
+
+              {/* Form inserimento nuova prestazione */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Aggiungi Nuova Prestazione o Servizio
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Es. Consulenza Contrattuale, Parere Pro Veritate, Ricorso Tributario..."
+                    value={newServiceInput}
+                    onChange={(e) => setNewServiceInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleAddService(e)
+                      }
+                    }}
+                    className="flex-1 text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddService}
+                    disabled={!newServiceInput.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Aggiungi</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Elenco prestazioni attive */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Prestazioni Attive ({servicesList.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleResetServices}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1 cursor-pointer transition"
+                    title="Ripristina la lista predefinita per studio professionale"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Ripristina Predefiniti</span>
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {servicesList.map((svc) => (
+                    <div
+                      key={svc}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 shadow-2xs group hover:border-slate-300"
+                    >
+                      <Briefcase className="w-3 h-3 text-blue-500" />
+                      <span>{svc}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveService(svc)}
+                        className="text-slate-400 hover:text-rose-600 p-0.5 rounded-md hover:bg-rose-50 transition cursor-pointer ml-0.5"
+                        title={`Rimuovi "${svc}"`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
