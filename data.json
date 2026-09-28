@@ -38,19 +38,6 @@
       "notes": "Viaggio a Milano",
       "reminderAlert": "1d",
       "id": "app_1790569193575_e6nf"
-    },
-    {
-      "clientName": "Raffaele Pappada",
-      "clientPhone": "3911166240",
-      "service": "Udienza / Tribunale",
-      "date": "2026-09-30",
-      "time": "10:00",
-      "duration": 60,
-      "status": "confirmed",
-      "price": "",
-      "notes": "Deposito perizia da parte del CTU incaricato dal tribunale di Brindisi causa Capobianco vs Pappadà",
-      "reminderAlert": "today",
-      "id": "app_1790588067424_7bss"
     }
   ],
   "clients": [
@@ -236,7 +223,8 @@
     }
   },
   "deletedAppIds": [
-    "demo-1"
+    "demo-1",
+    "app_1790588067424_7bss"
   ],
   "deletedClientIds": []
 }
