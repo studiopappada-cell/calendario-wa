@@ -116,6 +116,8 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState('online') // 'online', 'syncing', 'error'
 
   const isInitialMount = useRef(true)
+  const isAnyModalOpenRef = useRef(false)
+  isAnyModalOpenRef.current = isAppointmentModalOpen || isClientsModalOpen || isSettingsModalOpen || isWhatsAppModalOpen || isStatsModalOpen
 
   // Verifica ed esecuzione istantanea degli avvisi promemoria con suono, vibrazione e banner visivo
   const checkAndTriggerAlerts = useCallback((appsList) => {
@@ -258,14 +260,16 @@ export default function App() {
 
     // Polling ogni 10 secondi e quando lo smartphone viene sbloccato o l'utente torna sull'app
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && !isAnyModalOpenRef.current) {
         handleTriggerSync(false)
       }
       checkAndTriggerAlerts(loadAppointments())
     }, 10000)
 
     const onWakeUp = () => {
-      handleTriggerSync(false)
+      if (!isAnyModalOpenRef.current) {
+        handleTriggerSync(false)
+      }
       checkAndTriggerAlerts(loadAppointments())
     }
 
