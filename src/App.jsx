@@ -11,7 +11,8 @@ import {
   loadDeletedClientIds,
   saveDeletedClientIds,
   loadServices,
-  saveServices
+  saveServices,
+  toLocalDateString
 } from './utils/storage'
 import { fetchCloudData, pushCloudData } from './utils/githubSync'
 
@@ -546,7 +547,7 @@ export default function App() {
 
   // Apertura nuovo appuntamento generico
   const handleNewGenericAppointment = () => {
-    setSelectedDateForNew(new Date().toISOString().split('T')[0])
+    setSelectedDateForNew(toLocalDateString(new Date()))
     setEditingAppointment(null)
     setIsAppointmentModalOpen(true)
   }
@@ -558,7 +559,7 @@ export default function App() {
       clientName: client.name,
       clientPhone: client.phone || '',
       service: services[0] || 'Consulenza Legale',
-      date: new Date().toISOString().split('T')[0],
+      date: toLocalDateString(new Date()),
       time: '10:00',
       duration: 60,
       status: 'confirmed',
