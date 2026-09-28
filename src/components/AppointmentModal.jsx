@@ -33,7 +33,8 @@ import {
   getGoogleCalendarLink,
   loadServices,
   saveServices,
-  DEFAULT_SERVICES
+  DEFAULT_SERVICES,
+  toLocalDateString
 } from '../utils/storage'
 import { buildOwnerAlertLink, buildTestAlertWhatsAppLink } from '../utils/whatsapp'
 
@@ -61,7 +62,7 @@ export default function AppointmentModal({
     clientName: '',
     clientPhone: '',
     service: 'Consulenza Legale',
-    date: initialDate || new Date().toISOString().split('T')[0],
+    date: initialDate || toLocalDateString(new Date()),
     time: '10:00',
     duration: 60,
     status: 'confirmed',
@@ -162,7 +163,7 @@ export default function AppointmentModal({
         clientName: appointmentToEdit.clientName || '',
         clientPhone: appointmentToEdit.clientPhone || '',
         service: appointmentToEdit.service || defaultService,
-        date: appointmentToEdit.date || new Date().toISOString().split('T')[0],
+        date: appointmentToEdit.date || toLocalDateString(new Date()),
         time: appointmentToEdit.time || '10:00',
         duration: appointmentToEdit.duration || 60,
         status: appointmentToEdit.status || 'confirmed',
@@ -182,7 +183,7 @@ export default function AppointmentModal({
         clientName: '',
         clientPhone: '',
         service: defaultService,
-        date: initialDate || new Date().toISOString().split('T')[0],
+        date: initialDate || toLocalDateString(new Date()),
         time: '10:00',
         duration: 60,
         status: 'confirmed',
