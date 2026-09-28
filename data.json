@@ -25,6 +25,19 @@
       "price": "",
       "notes": "fare richiesta al GdP di Trebisacce di trattazione scritta",
       "reminderAlert": "today"
+    },
+    {
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Appuntamento Generale",
+      "date": "2026-10-31",
+      "time": "06:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "Viaggio a Milano",
+      "reminderAlert": "1d",
+      "id": "app_1790569193575_e6nf"
     }
   ],
   "clients": [
@@ -39,24 +52,6 @@
       "name": "Marialuigia Colombo",
       "phone": "",
       "notes": "Photo: https\\://lh6.googleusercontent.com/-r8e7Kym2jww/WmT0B7dWz1I/AAA"
-    },
-    {
-      "id": "c1",
-      "name": "Marco Rossi",
-      "phone": "3471234567",
-      "notes": "Cliente abituale"
-    },
-    {
-      "id": "c2",
-      "name": "Laura Bianchi",
-      "phone": "3389876543",
-      "notes": "Preferisce il pomeriggio"
-    },
-    {
-      "id": "c3",
-      "name": "Giuseppe Verdi",
-      "phone": "3201122334",
-      "notes": ""
     },
     {
       "id": "gcontact_1790532820877_p6ofj",
@@ -197,11 +192,5 @@
       "syncCode": "",
       "lastSync": null
     }
-  },
-  "deletedAppIds": [
-    "demo-1"
-  ],
-  "deletedClientIds": [
-    "gcontact_1790532820877_kqr7i"
-  ]
+  }
 }
