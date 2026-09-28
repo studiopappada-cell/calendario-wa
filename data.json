@@ -175,12 +175,23 @@
     }
   ],
   "settings": {
-    "businessName": "Il Mio Studio",
+    "businessName": "Studio Legale Pappadà",
     "businessPhone": "",
-    "businessAddress": "Via Roma, 1",
+    "businessAddress": "",
     "defaultPrefix": "+39",
     "defaultDuration": 60,
     "ownerPhone": "",
+    "services": [
+      "Consulenza Legale",
+      "Consulenza Fiscale",
+      "Appuntamento in Studio",
+      "Udienza / Tribunale",
+      "Firma Documenti",
+      "Dichiarazione Redditi",
+      "Ricorso / Pratica",
+      "Riunione",
+      "Appuntamento Generale"
+    ],
     "templates": {
       "reminder": "Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci. Buona giornata!",
       "confirmation": "Gentile {nome}, Le chiediamo gentile conferma per il Suo appuntamento di *{servizio}* fissato per il giorno *{data}* alle ore *{ora}*. Può confermare semplicemente rispondendo a questo messaggio. A presto!",
@@ -192,5 +203,16 @@
       "syncCode": "",
       "lastSync": null
     }
-  }
+  },
+  "services": [
+    "Consulenza Legale",
+    "Consulenza Fiscale",
+    "Appuntamento in Studio",
+    "Udienza / Tribunale",
+    "Firma Documenti",
+    "Dichiarazione Redditi",
+    "Ricorso / Pratica",
+    "Riunione",
+    "Appuntamento Generale"
+  ]
 }
