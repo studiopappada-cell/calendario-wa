@@ -7,30 +7,44 @@ const STORAGE_KEY_SETTINGS = 'wa_calendar_settings_v1'
 const STORAGE_KEY_CLIENTS = 'wa_calendar_clients_v1'
 const STORAGE_KEY_DELETED_APPS = 'wa_calendar_deleted_apps_v1'
 const STORAGE_KEY_DELETED_CLIENTS = 'wa_calendar_deleted_clients_v1'
+const STORAGE_KEY_SERVICES = 'wa_calendar_services_v1'
+
+export const DEFAULT_SERVICES = [
+  'Consulenza Legale',
+  'Consulenza Fiscale',
+  'Appuntamento in Studio',
+  'Udienza / Tribunale',
+  'Firma Documenti',
+  'Dichiarazione Redditi',
+  'Ricorso / Pratica',
+  'Riunione',
+  'Appuntamento Generale'
+]
 
 export const INITIAL_APPOINTMENTS = [
   {
     id: 'demo-1',
     clientName: 'Marco Rossi',
     clientPhone: '3471234567',
-    service: 'Consulenza Strategica',
+    service: 'Consulenza Legale',
     date: new Date().toISOString().split('T')[0],
     time: '10:00',
     duration: 60,
     status: 'confirmed',
     price: 80,
-    notes: 'Primo incontro di presentazione progetto.',
+    notes: 'Primo incontro di presentazione pratica.',
     createdAt: new Date().toISOString()
   }
 ]
 
 export const INITIAL_SETTINGS = {
-  businessName: 'Il Mio Studio',
+  businessName: 'Studio Pappadà',
   businessPhone: '',
-  businessAddress: 'Via Roma, 1',
+  businessAddress: '',
   defaultPrefix: '+39',
   defaultDuration: 60,
   ownerPhone: '', // Numero di cellulare a cui inviare gli alert promemoria
+  services: DEFAULT_SERVICES,
   templates: {
     reminder: `Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci. Buona giornata!`,
     confirmation: `Gentile {nome}, Le chiediamo gentile conferma per il Suo appuntamento di *{servizio}* fissato per il giorno *{data}* alle ore *{ora}*. Può confermare semplicemente rispondendo a questo messaggio. A presto!`,
@@ -41,6 +55,52 @@ export const INITIAL_SETTINGS = {
     enabled: false,
     syncCode: '',
     lastSync: null
+  }
+}
+
+// Recupera l'elenco dei servizi personalizzati o predefiniti
+export function loadServices() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SERVICES)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter((s) => typeof s === 'string' && s.trim().length > 0 && !s.toLowerCase().includes('taglio'))
+      }
+    }
+    const settingsRaw = localStorage.getItem(STORAGE_KEY_SETTINGS)
+    if (settingsRaw) {
+      const parsedSettings = JSON.parse(settingsRaw)
+      if (Array.isArray(parsedSettings?.services) && parsedSettings.services.length > 0) {
+        return parsedSettings.services.filter((s) => typeof s === 'string' && s.trim().length > 0 && !s.toLowerCase().includes('taglio'))
+      }
+    }
+    return DEFAULT_SERVICES
+  } catch (e) {
+    return DEFAULT_SERVICES
+  }
+}
+
+// Salva l'elenco dei servizi
+export function saveServices(services) {
+  try {
+    const safe = Array.isArray(services)
+      ? services.map((s) => String(s || '').trim()).filter((s) => s.length > 0 && !s.toLowerCase().includes('taglio'))
+      : DEFAULT_SERVICES
+    const finalServices = safe.length > 0 ? safe : DEFAULT_SERVICES
+    localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(finalServices))
+    try {
+      const settingsRaw = localStorage.getItem(STORAGE_KEY_SETTINGS)
+      if (settingsRaw) {
+        const parsed = JSON.parse(settingsRaw)
+        parsed.services = finalServices
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(parsed))
+      }
+    } catch (err) {}
+    return finalServices
+  } catch (e) {
+    console.error('Errore salvataggio servizi:', e)
+    return DEFAULT_SERVICES
   }
 }
 
@@ -128,10 +188,16 @@ export function saveAppointments(appointments) {
 export function loadSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS)
-    if (!raw) return INITIAL_SETTINGS
-    return { ...INITIAL_SETTINGS, ...JSON.parse(raw) }
+    const currentServices = loadServices()
+    const base = { ...INITIAL_SETTINGS, services: currentServices }
+    if (!raw) return base
+    const parsed = JSON.parse(raw)
+    const validServices = Array.isArray(parsed?.services) && parsed.services.length > 0
+      ? parsed.services.filter((s) => typeof s === 'string' && s.trim().length > 0 && !s.toLowerCase().includes('taglio'))
+      : currentServices
+    return { ...base, ...parsed, services: validServices }
   } catch (e) {
-    return INITIAL_SETTINGS
+    return { ...INITIAL_SETTINGS, services: loadServices() }
   }
 }
 
@@ -179,6 +245,7 @@ export function exportDataAsJSON() {
     appointments: loadAppointments(),
     settings: loadSettings(),
     clients: loadClients(),
+    services: loadServices(),
     exportedAt: new Date().toISOString(),
     version: '1.0'
   }
@@ -203,6 +270,11 @@ export function importDataFromJSON(jsonString) {
     }
     if (data.clients && Array.isArray(data.clients)) {
       saveClients(data.clients)
+    }
+    if (data.services && Array.isArray(data.services)) {
+      saveServices(data.services)
+    } else if (data.settings?.services && Array.isArray(data.settings.services)) {
+      saveServices(data.settings.services)
     }
     return { success: true, message: 'Dati importati con successo!' }
   } catch (e) {
