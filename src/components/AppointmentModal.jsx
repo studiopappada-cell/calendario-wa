@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   X,
   Calendar,
@@ -49,18 +49,13 @@ export default function AppointmentModal({
   services: propServices = [],
   onUpdateServices
 }) {
-  const [availableServices, setAvailableServices] = useState(() => {
+  const availableServices = useMemo(() => {
     if (Array.isArray(propServices) && propServices.length > 0) return propServices
     return loadServices()
-  })
+  }, [propServices])
 
-  useEffect(() => {
-    if (Array.isArray(propServices) && propServices.length > 0) {
-      setAvailableServices(propServices)
-    } else {
-      setAvailableServices(loadServices())
-    }
-  }, [propServices, isOpen])
+  const wasOpenRef = useRef(false)
+  const currentEditIdRef = useRef(null)
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -141,7 +136,20 @@ export default function AppointmentModal({
 
   // Inizializza il form SOLO quando il modale viene aperto o cambia l'appuntamento da modificare
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) {
+      wasOpenRef.current = false
+      currentEditIdRef.current = null
+      return
+    }
+
+    const editId = appointmentToEdit ? (appointmentToEdit.id || '__edit__') : '__new__'
+    // Se il modale era già aperto e l'appuntamento da modificare non è cambiato, NON resettare MAI il form!
+    if (wasOpenRef.current && currentEditIdRef.current === editId) {
+      return
+    }
+
+    wasOpenRef.current = true
+    currentEditIdRef.current = editId
 
     setFormError('')
     setSelectedRubricaId('')
@@ -162,6 +170,13 @@ export default function AppointmentModal({
         notes: appointmentToEdit.notes || '',
         reminderAlert: appointmentToEdit.reminderAlert || 'none'
       })
+      // Se il cliente appartiene alla rubrica, mantieni il dropdown allineato
+      if (appointmentToEdit.clientName && Array.isArray(clients)) {
+        const found = clients.find(
+          (c) => c && c.name && c.name.toLowerCase() === appointmentToEdit.clientName.toLowerCase()
+        )
+        if (found) setSelectedRubricaId(found.id)
+      }
     } else {
       setFormData({
         clientName: '',
@@ -176,7 +191,7 @@ export default function AppointmentModal({
         reminderAlert: '1d'
       })
     }
-  }, [isOpen, appointmentToEdit, initialDate, availableServices])
+  }, [isOpen, appointmentToEdit, initialDate])
 
   if (!isOpen) return null
 
