@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-06T18:12:57.627Z",
+  "updatedAt": "2026-11-06T18:12:59.220Z",
   "roomCode": "CAL-SEPUB",
   "appointments": [
     {
@@ -307,7 +307,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-06T18:12:57.627Z"
+      "lastSync": "2026-11-06T18:12:59.220Z"
     }
   },
   "services": [
