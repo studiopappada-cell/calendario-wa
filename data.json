@@ -1,5 +1,6 @@
 {
-  "updatedAt": "2026-11-06T10:50:00.000Z",
+  "updatedAt": "2026-11-06T18:12:57.627Z",
+  "roomCode": "CAL-SEPUB",
   "appointments": [
     {
       "id": "app_1790524062868_9g3u",
@@ -28,7 +29,6 @@
       "reminderAlert": "today"
     },
     {
-      "id": "app_1790569193575_e6nf",
       "clientName": "Raffaele Pappada",
       "clientPhone": "3911166240",
       "service": "Appuntamento Generale",
@@ -38,10 +38,10 @@
       "status": "confirmed",
       "price": "",
       "notes": "Viaggio a Milano",
-      "reminderAlert": "1d"
+      "reminderAlert": "1d",
+      "id": "app_1790569193575_e6nf"
     },
     {
-      "id": "app_1790588165036_0vqs",
       "clientName": "Raffaele Pappada",
       "clientPhone": "3911166240",
       "service": "Udienza / Tribunale",
@@ -50,8 +50,9 @@
       "duration": 60,
       "status": "confirmed",
       "price": "",
-      "notes": "deposito perizia da parte del CTU incaricato dal Tribunale causa Capobianco vs Pappad",
-      "reminderAlert": "1d"
+      "notes": "deposito perizia da parte del CTU incaricato dal Tribunale causa Capobianco vs Pappadà",
+      "reminderAlert": "1d",
+      "id": "app_1790588165036_0vqs"
     },
     {
       "id": "app_1793895564309_oo5x",
@@ -246,6 +247,30 @@
       "name": "Tecnico Informatico",
       "phone": "",
       "notes": ""
+    },
+    {
+      "id": "c1",
+      "name": "Marco Rossi",
+      "phone": "3471234567",
+      "notes": "Cliente abituale"
+    },
+    {
+      "id": "c2",
+      "name": "Laura Bianchi",
+      "phone": "3389876543",
+      "notes": "Preferisce il pomeriggio"
+    },
+    {
+      "id": "c3",
+      "name": "Giuseppe Verdi",
+      "phone": "3201122334",
+      "notes": ""
+    },
+    {
+      "id": "c_1793955647840",
+      "name": "Notaio",
+      "phone": "",
+      "notes": ""
     }
   ],
   "deletedAppIds": [
@@ -282,7 +307,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-06T10:50:00.000Z"
+      "lastSync": "2026-11-06T18:12:57.627Z"
     }
   },
   "services": [
