@@ -1,0 +1,299 @@
+{
+  "updatedAt": "2026-11-06T10:50:00.000Z",
+  "appointments": [
+    {
+      "id": "app_1790524062868_9g3u",
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Visita",
+      "date": "2026-09-29",
+      "time": "12:00",
+      "duration": 60,
+      "status": "pending",
+      "price": "",
+      "notes": "visita amplifon",
+      "reminderAlert": "today"
+    },
+    {
+      "id": "app_1790531025179_pjdm",
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Controllo",
+      "date": "2026-09-28",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "fare richiesta al GdP di Trebisacce di trattazione scritta",
+      "reminderAlert": "today"
+    },
+    {
+      "id": "app_1790569193575_e6nf",
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Appuntamento Generale",
+      "date": "2026-10-31",
+      "time": "06:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "Viaggio a Milano",
+      "reminderAlert": "1d"
+    },
+    {
+      "id": "app_1790588165036_0vqs",
+      "clientName": "Raffaele Pappada",
+      "clientPhone": "3911166240",
+      "service": "Udienza / Tribunale",
+      "date": "2026-09-30",
+      "time": "10:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "deposito perizia da parte del CTU incaricato dal Tribunale causa Capobianco vs Pappad",
+      "reminderAlert": "1d"
+    },
+    {
+      "id": "app_1793895564309_oo5x",
+      "clientName": "Ariano Benito",
+      "clientPhone": "3339140731",
+      "service": "Appuntamento Generale",
+      "date": "2026-11-06",
+      "time": "18:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "1d",
+      "updatedAt": "2026-11-06T10:50:00.000Z"
+    },
+    {
+      "id": "app_1793955672582_ag3i",
+      "clientName": "Tecnico Informatico",
+      "clientPhone": "",
+      "service": "Appuntamento Generale",
+      "date": "2026-11-10",
+      "time": "11:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "1d",
+      "updatedAt": "2026-11-06T10:50:00.000Z"
+    },
+    {
+      "id": "app_1793955647840_g9kq",
+      "clientName": "Notaio",
+      "clientPhone": "",
+      "service": "Consulenza Legale",
+      "date": "2026-11-11",
+      "time": "18:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "1d",
+      "updatedAt": "2026-11-06T10:50:00.000Z"
+    }
+  ],
+  "clients": [
+    {
+      "id": "c_1790525420050",
+      "name": "Raffaele Pappada",
+      "phone": "3911166240",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790531285066_wlbtx",
+      "name": "Marialuigia Colombo",
+      "phone": "",
+      "notes": "Photo: https\\://lh6.googleusercontent.com/-r8e7Kym2jww/WmT0B7dWz1I/AAA"
+    },
+    {
+      "id": "gcontact_1790532820877_p6ofj",
+      "name": "dellaportaangelo@libero.it",
+      "phone": "+393386907870",
+      "notes": "Photo: https\\://lh4.googleusercontent.com/-4tUtArqQdSg/W586jChwWCI/AAA"
+    },
+    {
+      "id": "gcontact_1790532820877_rike4",
+      "name": "Capobiancogiovanni",
+      "phone": "",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820877_fr8cd",
+      "name": "Cosimo Argentina",
+      "phone": "+393898338711",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820877_zbnsh",
+      "name": "Domenico Carucci",
+      "phone": "3385237402",
+      "notes": "Photo: https\\://lh4.googleusercontent.com/-lAATjWJDylU/WmTz9SSCHxI/AAA"
+    },
+    {
+      "id": "gcontact_1790532820877_nkti3",
+      "name": "Dott. Pietro della Porta",
+      "phone": "+393405446850",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820877_wodfb",
+      "name": "Enrico Truppi",
+      "phone": "+393923330771",
+      "notes": "Photo: https\\://lh5.googleusercontent.com/-su1R_zczo1I/W586GqCXO_I/AAA"
+    },
+    {
+      "id": "gcontact_1790532820877_knbev",
+      "name": "Enzo Di Punzio",
+      "phone": "3337716129",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820877_twng5",
+      "name": "Filomena Montanaro",
+      "phone": "+393933088771",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820877_os7lo",
+      "name": "Francesco Galiano",
+      "phone": "+393357478129",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_pj16w",
+      "name": "Giovanni Andriulo",
+      "phone": "",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_hlyug",
+      "name": "Giovanni di Noi",
+      "phone": "3384161354",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_30g8w",
+      "name": "Giulia Vacca",
+      "phone": "+393884511008",
+      "notes": "Photo: https\\://lh5.googleusercontent.com/-DuLwaGeez6Y/W585ALGR3AI/AAA"
+    },
+    {
+      "id": "gcontact_1790532820878_oq7t3",
+      "name": "Giuseppe di Palmo",
+      "phone": "+393283081005",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_izgqz",
+      "name": "Giuseppe Fusco",
+      "phone": "3356930871",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_km86n",
+      "name": "Leuzzi Stefano",
+      "phone": "+393270588225",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_d5ry7",
+      "name": "Mario Passaro",
+      "phone": "+393474769007",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_10cge",
+      "name": "Pasquale Leone",
+      "phone": "+393803468835",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_42xov",
+      "name": "Pierpaolo Di castri",
+      "phone": "",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_gz5w7",
+      "name": "Raffaello Angelo",
+      "phone": "+393518123208",
+      "notes": ""
+    },
+    {
+      "id": "gcontact_1790532820878_riv8o",
+      "name": "Zia Rosaria",
+      "phone": "3933277313",
+      "notes": ""
+    },
+    {
+      "id": "c_1793895458778",
+      "name": "Notaio",
+      "phone": "",
+      "notes": ""
+    },
+    {
+      "id": "c_1793895564310",
+      "name": "Ariano Benito",
+      "phone": "3339140731",
+      "notes": ""
+    },
+    {
+      "id": "c_1793955672583",
+      "name": "Tecnico Informatico",
+      "phone": "",
+      "notes": ""
+    }
+  ],
+  "deletedAppIds": [
+    "demo-1",
+    "app_1790588067424_7bss",
+    "app_1793895458777_7r36",
+    "app_1793895493695_xaf4"
+  ],
+  "deletedClientIds": [],
+  "settings": {
+    "businessName": "Studio Legale Pappadà",
+    "businessPhone": "",
+    "businessAddress": "",
+    "defaultPrefix": "+39",
+    "defaultDuration": 60,
+    "ownerPhone": "",
+    "services": [
+      "Consulenza Legale",
+      "Consulenza Fiscale",
+      "Appuntamento in Studio",
+      "Udienza / Tribunale",
+      "Firma Documenti",
+      "Dichiarazione Redditi",
+      "Ricorso / Pratica",
+      "Riunione",
+      "Appuntamento Generale"
+    ],
+    "templates": {
+      "reminder": "Gentile {nome}, Le ricordiamo il Suo appuntamento per *{servizio}* fissato per il giorno *{data}* alle ore *{ora}* presso {azienda}. Per qualsiasi necessità o variazione La preghiamo di avvisarci. Buona giornata!",
+      "confirmation": "Gentile {nome}, Le chiediamo gentile conferma per il Suo appuntamento di *{servizio}* fissato per il giorno *{data}* alle ore *{ora}*. Può confermare semplicemente rispondendo a questo messaggio. A presto!",
+      "thankyou": "Gentile {nome}, grazie per essere stato da noi oggi per *{servizio}*. Speriamo che l'esperienza sia stata di Suo gradimento. Buona continuazione!",
+      "custom": "Gentile {nome}, Le scriviamo in merito all'appuntamento del {data} alle {ora} ({servizio}). Cordiali saluti."
+    },
+    "cloudSync": {
+      "enabled": true,
+      "syncCode": "CAL-SEPUB",
+      "lastSync": "2026-11-06T10:50:00.000Z"
+    }
+  },
+  "services": [
+    "Consulenza Legale",
+    "Consulenza Fiscale",
+    "Appuntamento in Studio",
+    "Udienza / Tribunale",
+    "Firma Documenti",
+    "Dichiarazione Redditi",
+    "Ricorso / Pratica",
+    "Riunione",
+    "Appuntamento Generale"
+  ]
+}
