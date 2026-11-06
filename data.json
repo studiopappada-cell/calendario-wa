@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-06T18:13:40.032Z",
+  "updatedAt": "2026-11-06T18:13:46.624Z",
   "roomCode": "CAL-SEPUB",
   "appointments": [
     {
@@ -66,7 +66,7 @@
       "price": "",
       "notes": "",
       "reminderAlert": "1d",
-      "updatedAt": "2026-11-06T10:50:00.000Z"
+      "updatedAt": "2026-11-06T18:13:46.227Z"
     },
     {
       "id": "app_1793955672582_ag3i",
@@ -321,7 +321,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-06T18:13:40.032Z"
+      "lastSync": "2026-11-06T18:13:46.624Z"
     }
   },
   "services": [
