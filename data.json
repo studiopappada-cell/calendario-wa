@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-06T18:13:47.971Z",
+  "updatedAt": "2026-11-06T18:14:57.807Z",
   "roomCode": "CAL-SEPUB",
   "appointments": [
     {
@@ -285,6 +285,13 @@
       "name": "Notaio",
       "phone": "",
       "notes": ""
+    },
+    {
+      "id": "c_1793988897290",
+      "name": "Andriani Flavio",
+      "phone": "+393493593850",
+      "notes": "",
+      "updatedAt": "2026-11-06T18:14:57.290Z"
     }
   ],
   "deletedAppIds": [
@@ -321,7 +328,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-06T18:13:47.971Z"
+      "lastSync": "2026-11-06T18:14:57.807Z"
     }
   },
   "services": [
