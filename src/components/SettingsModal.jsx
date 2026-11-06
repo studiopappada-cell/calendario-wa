@@ -51,6 +51,7 @@ export default function SettingsModal({
   const [newServiceInput, setNewServiceInput] = useState('')
   const [activeTab, setActiveTab] = useState('templates') // templates, services, general, sync, mobile, backup
   const [copyCodeSuccess, setCopyCodeSuccess] = useState(false)
+  const [syncSuccessMsg, setSyncSuccessMsg] = useState('')
   const [importStatus, setImportStatus] = useState(null)
   const [testAlertResult, setTestAlertResult] = useState(null)
   const [isTestingAlert, setIsTestingAlert] = useState(false)
@@ -58,7 +59,15 @@ export default function SettingsModal({
   // Sincronizza lo stato quando il modale viene aperto
   React.useEffect(() => {
     if (isOpen) {
-      setFormData({ ...(settings || {}) })
+      const activeCode = settings?.cloudSync?.syncCode?.trim() || 'CAL-SEPUB'
+      setFormData({
+        ...(settings || {}),
+        cloudSync: {
+          ...(settings?.cloudSync || {}),
+          enabled: true,
+          syncCode: activeCode
+        }
+      })
       setOwnerPhone(loadOwnerPhone() || (settings && settings.ownerPhone) || '')
       setServicesList(
         settings && Array.isArray(settings.services) && settings.services.length > 0
@@ -67,6 +76,7 @@ export default function SettingsModal({
       )
       setNewServiceInput('')
       setTestAlertResult(null)
+      setSyncSuccessMsg('')
     }
   }, [isOpen, settings])
 
@@ -445,16 +455,26 @@ export default function SettingsModal({
                   </div>
                 )}
 
-                <div className="pt-2">
+                <div className="pt-2 space-y-2">
                   <button
                     type="button"
-                    onClick={() => onTriggerSync(formData.cloudSync?.syncCode)}
+                    onClick={async () => {
+                      setSyncSuccessMsg('')
+                      await onTriggerSync(formData.cloudSync?.syncCode || 'CAL-SEPUB')
+                      setSyncSuccessMsg('Sincronizzazione Cloud completata! Tutti gli appuntamenti sono allineati.')
+                    }}
                     disabled={!formData.cloudSync?.syncCode || isSyncing}
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-sm"
                   >
                     <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                     <span>{isSyncing ? 'Sincronizzazione in corso...' : 'Sincronizza Adesso con il Cloud'}</span>
                   </button>
+                  {syncSuccessMsg && !isSyncing && (
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{syncSuccessMsg}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

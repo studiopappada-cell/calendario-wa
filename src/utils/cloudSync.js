@@ -1,11 +1,11 @@
-﻿/**
+/**
  * Modulo di sincronizzazione cloud multi-dispositivo (PC, Smartphone, Tablet)
- * Permette di sincronizzare automaticamente o con un clic tramite una "Stanza Cloud" univoca.
+ * Unificato con il backend GitHub Cloud per garantire che il Codice Stanza (es. CAL-SEPUB)
+ * sincronizzi realmente i dati su tutti i dispositivi.
  */
 
-// Utilizziamo un endpoint pubblico sicuro basato su cloud storage KV gratuito (jsonbin.io o keyval o simili)
-// con fallback locale trasparente.
-const CLOUD_SYNC_API = 'https://api.jsonstorage.net/v1/json'
+import { fetchCloudData, pushCloudData } from './githubSync'
+import { DEFAULT_ROOM_CODE } from './storage'
 
 // Genera un codice stanza casuale a 6 cifre/lettere
 export function generateRoomCode() {
@@ -19,54 +19,36 @@ export function generateRoomCode() {
 
 // Salva lo stato completo nel cloud con la chiave della stanza
 export async function pushToCloud(roomCode, data) {
-  if (!roomCode || roomCode.length < 3) {
-    throw new Error('Codice stanza non valido')
-  }
-
-  const payload = {
-    roomCode,
-    updatedAt: new Date().toISOString(),
-    data: {
-      appointments: data.appointments,
-      clients: data.clients,
-      settings: data.settings
+  const cleanRoom = (roomCode || DEFAULT_ROOM_CODE).trim().toUpperCase()
+  const updatedSettings = {
+    ...(data?.settings || {}),
+    cloudSync: {
+      ...(data?.settings?.cloudSync || {}),
+      enabled: true,
+      syncCode: cleanRoom,
+      lastSync: new Date().toISOString()
     }
   }
-
-  // Salvataggio tramite servizio cloud REST
-  // Per massima affidabilità usiamo localStorage simulando o endpoint KV
-  try {
-    const res = await fetch(`https://api.restful-api.dev/objects`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: `wa_calendar_${roomCode}`,
-        data: payload
-      })
-    })
-    
-    // Salviamo localmente anche l'ultimo sync
-    localStorage.setItem(`wa_cloud_sync_${roomCode}`, JSON.stringify(payload))
-    return { success: true, timestamp: payload.updatedAt }
-  } catch (error) {
-    console.warn('Fallback sincronizzazione locale:', error)
-    localStorage.setItem(`wa_cloud_sync_${roomCode}`, JSON.stringify(payload))
-    return { success: true, timestamp: payload.updatedAt, localOnly: true }
+  const res = await pushCloudData({
+    ...data,
+    settings: updatedSettings
+  })
+  return {
+    success: Boolean(res?.success),
+    timestamp: updatedSettings.cloudSync.lastSync,
+    data: res?.data
   }
 }
 
 // Carica lo stato dal cloud
 export async function pullFromCloud(roomCode) {
-  if (!roomCode) throw new Error('Codice stanza richiesto')
-
-  try {
-    const local = localStorage.getItem(`wa_cloud_sync_${roomCode}`)
-    if (local) {
-      const parsed = JSON.parse(local)
-      return { success: true, data: parsed.data, updatedAt: parsed.updatedAt }
+  const res = await fetchCloudData()
+  if (res?.success && res.data) {
+    return {
+      success: true,
+      data: res.data,
+      updatedAt: res.data.updatedAt || new Date().toISOString()
     }
-    return { success: false, message: 'Nessun dato trovato per questa stanza' }
-  } catch (error) {
-    return { success: false, message: error.message }
   }
+  return { success: false, message: 'Impossibile scaricare i dati dal cloud' }
 }

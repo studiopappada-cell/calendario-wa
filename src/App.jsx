@@ -12,9 +12,12 @@ import {
   saveDeletedClientIds,
   loadServices,
   saveServices,
-  toLocalDateString
+  toLocalDateString,
+  restoreFromIndexedDBIfNeeded,
+  getActiveRoomCode,
+  DEFAULT_ROOM_CODE
 } from './utils/storage'
-import { fetchCloudData, pushCloudData } from './utils/githubSync'
+import { fetchCloudData, pushCloudData, mergeItemsById } from './utils/githubSync'
 
 // Componenti
 import Navbar from './components/Navbar'
@@ -42,48 +45,26 @@ import {
 // Merge intelligente: unisce le liste di appuntamenti senza perdere quelli locali
 // ed ESCLUDE categoricamente qualsiasi appuntamento precedentemente cancellato
 function mergeAppointments(localList, incomingList, deletedIdsSet) {
-  const map = new Map()
-
-  if (Array.isArray(incomingList)) {
-    incomingList.forEach((item) => {
-      if (item && item.id && !deletedIdsSet.has(item.id)) {
-        map.set(item.id, item)
-      }
-    })
-  }
-
-  if (Array.isArray(localList)) {
-    localList.forEach((item) => {
-      if (item && item.id && !deletedIdsSet.has(item.id)) {
-        map.set(item.id, item)
-      }
-    })
-  }
-
-  return Array.from(map.values())
+  return mergeItemsById(incomingList, localList, deletedIdsSet)
 }
 
 // Merge clienti senza perdere quelli locali ed escludendo i cancellati
 function mergeClients(localList, incomingList, deletedIdsSet) {
-  const map = new Map()
+  return mergeItemsById(incomingList, localList, deletedIdsSet)
+}
 
-  if (Array.isArray(incomingList)) {
-    incomingList.forEach((item) => {
-      if (item && item.id && !deletedIdsSet.has(item.id)) {
-        map.set(item.id, item)
-      }
-    })
+function hasNewOrUpdatedItems(mergedList, cloudList) {
+  if (!Array.isArray(cloudList)) return mergedList.length > 0
+  if (mergedList.length !== cloudList.length) return true
+  const cloudMap = new Map(cloudList.map((i) => [i?.id, i]))
+  for (const item of mergedList) {
+    const cloudItem = cloudMap.get(item.id)
+    if (!cloudItem) return true
+    const mTs = item.updatedAt ? Date.parse(item.updatedAt) : 0
+    const cTs = cloudItem.updatedAt ? Date.parse(cloudItem.updatedAt) : 0
+    if (mTs > cTs) return true
   }
-
-  if (Array.isArray(localList)) {
-    localList.forEach((item) => {
-      if (item && item.id && !deletedIdsSet.has(item.id)) {
-        map.set(item.id, item)
-      }
-    })
-  }
-
-  return Array.from(map.values())
+  return false
 }
 
 export default function App() {
@@ -116,9 +97,13 @@ export default function App() {
   const [lastSyncTime, setLastSyncTime] = useState(null)
   const [syncStatus, setSyncStatus] = useState('online') // 'online', 'syncing', 'error'
 
-  const isInitialMount = useRef(true)
   const isAnyModalOpenRef = useRef(false)
-  isAnyModalOpenRef.current = isAppointmentModalOpen || isClientsModalOpen || isSettingsModalOpen || isWhatsAppModalOpen || isStatsModalOpen
+  isAnyModalOpenRef.current =
+    isAppointmentModalOpen ||
+    isClientsModalOpen ||
+    isSettingsModalOpen ||
+    isWhatsAppModalOpen ||
+    isStatsModalOpen
 
   // Verifica ed esecuzione istantanea degli avvisi promemoria con suono, vibrazione e banner visivo
   const checkAndTriggerAlerts = useCallback((appsList) => {
@@ -155,109 +140,220 @@ export default function App() {
     })
   }, [])
 
-  // 1. All'avvio dell'app: recupera i dati freschi dal cloud GitHub e sblocca l'audio
-  useEffect(() => {
-    // Inizializza lo sblocco dell'audio per suoni e campanella al primo tocco
-    initAudioUnlock()
-
-    const doInitialSync = async () => {
+  // Sincronizzazione bidirezionale sicura (unisci sempre prima dal Cloud, poi salva se necessario)
+  const handleTriggerSync = useCallback(
+    async (forcePush = false, customRoomCode = null) => {
       setIsSyncing(true)
       setSyncStatus('syncing')
       try {
-        const cloudRes = await fetchCloudData()
-        if (cloudRes.success && cloudRes.data) {
-          const cloudData = cloudRes.data
-
-          // 1. Allinea gli ID eliminati (tombstones)
-          let currentDelApps = loadDeletedAppIds()
-          if (Array.isArray(cloudData.deletedAppIds)) {
-            currentDelApps = Array.from(new Set([...currentDelApps, ...cloudData.deletedAppIds]))
-            saveDeletedAppIds(currentDelApps)
-            setDeletedAppIds(currentDelApps)
-          }
-          const delAppSet = new Set(currentDelApps)
-
-          let currentDelClients = loadDeletedClientIds()
-          if (Array.isArray(cloudData.deletedClientIds)) {
-            currentDelClients = Array.from(new Set([...currentDelClients, ...cloudData.deletedClientIds]))
-            saveDeletedClientIds(currentDelClients)
-            setDeletedClientIds(currentDelClients)
-          }
-          const delClientSet = new Set(currentDelClients)
-
-          // 2. Merge clienti escludendo eliminati
-          if (Array.isArray(cloudData.clients)) {
-            const currentClients = loadClients().filter((c) => c && !delClientSet.has(c.id))
-            const mergedC = mergeClients(currentClients, cloudData.clients, delClientSet)
-            setClients(mergedC)
-            saveClients(mergedC)
-          }
-
-          // 3. Merge appuntamenti escludendo eliminati
-          if (Array.isArray(cloudData.appointments)) {
-            const currentApps = loadAppointments().filter((a) => a && !delAppSet.has(a.id))
-            const mergedA = mergeAppointments(currentApps, cloudData.appointments, delAppSet)
-            setAppointments(mergedA)
-            saveAppointments(mergedA)
-
-            // CONTROLLO IMMEDIATO DEGLI ALERT APPENA SCARICATI DAL CLOUD!
-            checkAndTriggerAlerts(mergedA)
-
-            if (mergedA.length > cloudData.appointments.length) {
-              pushCloudData({
-                appointments: mergedA,
-                clients: loadClients(),
-                settings,
-                deletedAppIds: currentDelApps,
-                deletedClientIds: currentDelClients
-              })
+        // Se viene passato un codice stanza (es. da SettingsModal), salvalo subito nelle impostazioni
+        let currentSettings = loadSettings()
+        if (customRoomCode && typeof customRoomCode === 'string' && customRoomCode.trim()) {
+          const cleanCode = customRoomCode.trim().toUpperCase()
+          currentSettings = {
+            ...currentSettings,
+            cloudSync: {
+              ...(currentSettings.cloudSync || {}),
+              enabled: true,
+              syncCode: cleanCode,
+              lastSync: new Date().toISOString()
             }
           }
+          saveSettings(currentSettings)
+          setSettings(currentSettings)
+        }
+
+        const delAppList = loadDeletedAppIds()
+        const delClientList = loadDeletedClientIds()
+
+        // 1. Scarica SEMPRE prima i dati dal Cloud per non sovrascrivere mai gli altri dispositivi
+        const res = await fetchCloudData()
+        if (res.success && res.data) {
+          const cloudData = res.data
+
+          const allDelApps = Array.from(
+            new Set([
+              'demo-1',
+              ...delAppList,
+              ...(Array.isArray(cloudData.deletedAppIds) ? cloudData.deletedAppIds : []),
+              ...(Array.isArray(cloudData.deletedAppointments) ? cloudData.deletedAppointments : [])
+            ])
+          )
+          saveDeletedAppIds(allDelApps)
+          setDeletedAppIds(allDelApps)
+          const activeDelAppSet = new Set(allDelApps)
+
+          const allDelClients = Array.from(
+            new Set([
+              ...delClientList,
+              ...(Array.isArray(cloudData.deletedClientIds) ? cloudData.deletedClientIds : []),
+              ...(Array.isArray(cloudData.deletedClients) ? cloudData.deletedClients : [])
+            ])
+          )
+          saveDeletedClientIds(allDelClients)
+          setDeletedClientIds(allDelClients)
+          const activeDelClientSet = new Set(allDelClients)
+
+          const currentLocalClients = loadClients().filter((c) => c && !activeDelClientSet.has(c.id))
+          const mergedClients = mergeClients(
+            currentLocalClients,
+            cloudData.clients || [],
+            activeDelClientSet
+          )
+          setClients(mergedClients)
+          saveClients(mergedClients)
+
+          const currentLocalApps = loadAppointments().filter((a) => a && !activeDelAppSet.has(a.id))
+          const mergedApps = mergeAppointments(
+            currentLocalApps,
+            cloudData.appointments || [],
+            activeDelAppSet
+          )
+          setAppointments(mergedApps)
+          saveAppointments(mergedApps)
+
+          checkAndTriggerAlerts(mergedApps)
 
           if (cloudData.settings) {
-            setSettings(cloudData.settings)
-            saveSettings(cloudData.settings)
+            const activeCode =
+              customRoomCode?.trim()?.toUpperCase() ||
+              currentSettings?.cloudSync?.syncCode?.trim()?.toUpperCase() ||
+              cloudData.settings?.cloudSync?.syncCode?.trim()?.toUpperCase() ||
+              DEFAULT_ROOM_CODE
+            const mergedSettings = {
+              ...cloudData.settings,
+              ...currentSettings,
+              businessName:
+                cloudData.settings.businessName || currentSettings.businessName || 'Studio Legale Pappadà',
+              cloudSync: {
+                ...(cloudData.settings.cloudSync || {}),
+                ...(currentSettings.cloudSync || {}),
+                enabled: true,
+                syncCode: activeCode,
+                lastSync: new Date().toISOString()
+              }
+            }
+            setSettings(mergedSettings)
+            saveSettings(mergedSettings)
+            currentSettings = mergedSettings
           }
 
           if (Array.isArray(cloudData.services) && cloudData.services.length > 0) {
-            const cleanSvc = cloudData.services.filter(s => typeof s === 'string' && !s.toLowerCase().includes('taglio'))
+            const cleanSvc = cloudData.services.filter(
+              (s) => typeof s === 'string' && !s.toLowerCase().includes('taglio')
+            )
             if (cleanSvc.length > 0) {
               setServices(cleanSvc)
               saveServices(cleanSvc)
             }
           } else if (cloudData.settings?.services && Array.isArray(cloudData.settings.services)) {
-            const cleanSvc = cloudData.settings.services.filter(s => typeof s === 'string' && !s.toLowerCase().includes('taglio'))
+            const cleanSvc = cloudData.settings.services.filter(
+              (s) => typeof s === 'string' && !s.toLowerCase().includes('taglio')
+            )
             if (cleanSvc.length > 0) {
               setServices(cleanSvc)
               saveServices(cleanSvc)
             }
           }
 
-          setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
-          setSyncStatus('online')
-        } else {
-          // Se nel cloud non c'è ancora il file, carichiamo lo stato corrente locale
-          await pushCloudData({
-            appointments,
-            clients,
-            settings,
+          // Se è richiesto un forcePush o ci sono modifiche locali non ancora presenti nel cloud, caricale
+          const needsPush =
+            forcePush ||
+            hasNewOrUpdatedItems(mergedApps, cloudData.appointments || []) ||
+            hasNewOrUpdatedItems(mergedClients, cloudData.clients || []) ||
+            allDelApps.length > (cloudData.deletedAppIds?.length || 0)
+
+          if (needsPush) {
+            const pushRes = await pushCloudData({
+              appointments: mergedApps,
+              clients: mergedClients,
+              settings: currentSettings,
+              services: loadServices(),
+              deletedAppIds: allDelApps,
+              deletedClientIds: allDelClients
+            })
+            if (pushRes?.success) {
+              setLastSyncTime(
+                new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+              )
+              setSyncStatus('online')
+            } else {
+              setSyncStatus('error')
+            }
+          } else {
+            setLastSyncTime(
+              new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+            )
+            setSyncStatus('online')
+          }
+        } else if (forcePush) {
+          const pushRes = await pushCloudData({
+            appointments: loadAppointments(),
+            clients: loadClients(),
+            settings: currentSettings,
             services: loadServices(),
-            deletedAppIds: loadDeletedAppIds(),
-            deletedClientIds: loadDeletedClientIds()
+            deletedAppIds: delAppList,
+            deletedClientIds: delClientList
           })
-          setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
-          setSyncStatus('online')
-          checkAndTriggerAlerts(appointments)
+          if (pushRes?.success) {
+            if (pushRes.data?.appointments) {
+              setAppointments(pushRes.data.appointments)
+              saveAppointments(pushRes.data.appointments)
+            }
+            if (pushRes.data?.clients) {
+              setClients(pushRes.data.clients)
+              saveClients(pushRes.data.clients)
+            }
+            setLastSyncTime(
+              new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+            )
+            setSyncStatus('online')
+          } else {
+            setSyncStatus('error')
+          }
+        } else {
+          setSyncStatus('error')
         }
-      } catch (err) {
-        console.error('Errore sincronizzazione iniziale:', err)
+      } catch (e) {
+        console.warn('Errore sync:', e)
         setSyncStatus('error')
       } finally {
         setIsSyncing(false)
       }
+    },
+    [checkAndTriggerAlerts]
+  )
+
+  // 1. All'avvio dell'app: ripristina eventuale backup da IndexedDB, legge ?room= e sincronizza col Cloud
+  useEffect(() => {
+    initAudioUnlock()
+
+    const initApp = async () => {
+      // Ripristina da IndexedDB se il LocalStorage è vuoto
+      const restored = await restoreFromIndexedDBIfNeeded()
+      if (restored.appointments) setAppointments(restored.appointments)
+      if (restored.clients) setClients(restored.clients)
+      if (restored.settings) setSettings(restored.settings)
+
+      // Legge eventuale parametro ?room=CAL-SEPUB dall'URL
+      const activeRoom = getActiveRoomCode()
+      await handleTriggerSync(false, activeRoom)
     }
 
-    doInitialSync()
+    initApp()
+
+    // Sincronizzazione istantanea tra schede aperte sullo stesso browser
+    const onStorageChange = (e) => {
+      if (!e.key) return
+      if (e.key === 'wa_calendar_appointments_v1') {
+        setAppointments(loadAppointments())
+      } else if (e.key === 'wa_calendar_clients_v1') {
+        setClients(loadClients())
+      } else if (e.key === 'wa_calendar_settings_v1') {
+        setSettings(loadSettings())
+      }
+    }
+    window.addEventListener('storage', onStorageChange)
 
     // Polling ogni 10 secondi e quando lo smartphone viene sbloccato o l'utente torna sull'app
     const interval = setInterval(() => {
@@ -281,110 +377,17 @@ export default function App() {
 
     return () => {
       clearInterval(interval)
+      window.removeEventListener('storage', onStorageChange)
       document.removeEventListener('visibilitychange', onWakeUp)
       window.removeEventListener('focus', onWakeUp)
       window.removeEventListener('pageshow', onWakeUp)
     }
-  }, [checkAndTriggerAlerts])
-
-  // Sincronizzazione non distruttiva dal Cloud (con filtro tombstones)
-  const handleTriggerSync = async (forcePush = false) => {
-    setIsSyncing(true)
-    setSyncStatus('syncing')
-    try {
-      const delAppList = loadDeletedAppIds()
-      const delAppSet = new Set(delAppList)
-      const delClientList = loadDeletedClientIds()
-      const delClientSet = new Set(delClientList)
-
-      if (forcePush) {
-        await pushCloudData({
-          appointments: appointments.filter((a) => !delAppSet.has(a.id)),
-          clients: clients.filter((c) => !delClientSet.has(c.id)),
-          settings,
-          deletedAppIds: delAppList,
-          deletedClientIds: delClientList
-        })
-        setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
-        setSyncStatus('online')
-      } else {
-        const res = await fetchCloudData()
-        if (res.success && res.data) {
-          // Allinea tombstones dal cloud se presenti
-          let allDelApps = delAppList
-          if (Array.isArray(res.data.deletedAppIds)) {
-            allDelApps = Array.from(new Set([...delAppList, ...res.data.deletedAppIds]))
-            saveDeletedAppIds(allDelApps)
-            setDeletedAppIds(allDelApps)
-          }
-          const activeDelAppSet = new Set(allDelApps)
-
-          let allDelClients = delClientList
-          if (Array.isArray(res.data.deletedClientIds)) {
-            allDelClients = Array.from(new Set([...delClientList, ...res.data.deletedClientIds]))
-            saveDeletedClientIds(allDelClients)
-            setDeletedClientIds(allDelClients)
-          }
-          const activeDelClientSet = new Set(allDelClients)
-
-          if (Array.isArray(res.data.clients)) {
-            const currentLocalClients = loadClients().filter((c) => c && !activeDelClientSet.has(c.id))
-            const mergedClients = mergeClients(currentLocalClients, res.data.clients, activeDelClientSet)
-            setClients(mergedClients)
-            saveClients(mergedClients)
-          }
-          if (Array.isArray(res.data.appointments)) {
-            const currentLocalApps = loadAppointments().filter((a) => a && !activeDelAppSet.has(a.id))
-            const mergedApps = mergeAppointments(currentLocalApps, res.data.appointments, activeDelAppSet)
-            setAppointments(mergedApps)
-            saveAppointments(mergedApps)
-
-            // Esegue subito il controllo allarmi al ricevimento dei dati cloud
-            checkAndTriggerAlerts(mergedApps)
-
-            if (mergedApps.length > (res.data.appointments?.length || 0)) {
-              pushCloudData({
-                appointments: mergedApps,
-                clients: loadClients(),
-                settings,
-                deletedAppIds: allDelApps,
-                deletedClientIds: allDelClients
-              })
-            }
-          }
-          if (res.data.settings) {
-            setSettings(res.data.settings)
-            saveSettings(res.data.settings)
-          }
-          if (Array.isArray(res.data.services) && res.data.services.length > 0) {
-            const cleanSvc = res.data.services.filter(s => typeof s === 'string' && !s.toLowerCase().includes('taglio'))
-            if (cleanSvc.length > 0) {
-              setServices(cleanSvc)
-              saveServices(cleanSvc)
-            }
-          } else if (res.data.settings?.services && Array.isArray(res.data.settings.services)) {
-            const cleanSvc = res.data.settings.services.filter(s => typeof s === 'string' && !s.toLowerCase().includes('taglio'))
-            if (cleanSvc.length > 0) {
-              setServices(cleanSvc)
-              saveServices(cleanSvc)
-            }
-          }
-          setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
-          setSyncStatus('online')
-        }
-      }
-    } catch (e) {
-      console.warn('Errore sync:', e)
-      setSyncStatus('error')
-    } finally {
-      setIsSyncing(false)
-    }
-  }
+  }, [checkAndTriggerAlerts, handleTriggerSync])
 
   const handleUpdateServices = (newServices) => {
     const saved = saveServices(newServices)
     setServices(saved)
-    const updatedSettings = { ...settings, services: saved }
+    const updatedSettings = { ...loadSettings(), services: saved }
     setSettings(updatedSettings)
     saveSettings(updatedSettings)
     pushCloudData({
@@ -397,19 +400,6 @@ export default function App() {
     })
   }
 
-  // Persistenza locale automatica
-  useEffect(() => {
-    saveAppointments(appointments)
-  }, [appointments])
-
-  useEffect(() => {
-    saveSettings(settings)
-  }, [settings])
-
-  useEffect(() => {
-    saveClients(clients)
-  }, [clients])
-
   // Controllo automatico continuo degli alert al variare degli appuntamenti
   useEffect(() => {
     checkAndTriggerAlerts(appointments)
@@ -418,6 +408,7 @@ export default function App() {
   // Creazione o Salvataggio Appuntamento (immediato e a prova di errore)
   const handleSaveAppointment = (appData) => {
     try {
+      const nowIso = new Date().toISOString()
       const sanitizedApp = {
         ...appData,
         id: appData.id || 'app_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
@@ -429,7 +420,8 @@ export default function App() {
         duration: Number(appData.duration || 60),
         status: String(appData.status || 'confirmed'),
         reminderAlert: String(appData.reminderAlert || '1d'),
-        notes: String(appData.notes || '').trim()
+        notes: String(appData.notes || '').trim(),
+        updatedAt: nowIso
       }
 
       // Se è impostato un avviso, richiediamo l'autorizzazione alle notifiche sullo smartphone
@@ -446,12 +438,11 @@ export default function App() {
         updatedApps = [...currentApps, sanitizedApp]
       }
 
-      // 1. Aggiorna lo stato React
-      setAppointments(updatedApps)
-      // 2. Salva immediatamente in LocalStorage del browser/telefono
+      // 1. Salva immediatamente in LocalStorage + IndexedDB e aggiorna lo stato React
       saveAppointments(updatedApps)
+      setAppointments(updatedApps)
 
-      // 3. Esegue subito il controllo alert per emettere suono, vibrazione o banner se dovuto oggi o imminente
+      // 2. Esegue subito il controllo alert per emettere suono, vibrazione o banner se dovuto oggi o imminente
       checkAndTriggerAlerts(updatedApps)
 
       const currentClients = loadClients()
@@ -467,23 +458,48 @@ export default function App() {
             id: 'c_' + Date.now(),
             name: sanitizedApp.clientName,
             phone: sanitizedApp.clientPhone || '',
-            notes: ''
+            notes: '',
+            updatedAt: nowIso
           }
           updatedClients = [...currentClients, newClient]
-          setClients(updatedClients)
           saveClients(updatedClients)
+          setClients(updatedClients)
         }
       }
 
-      // 4. Salva immediatamente nel Cloud GitHub con il token integrato
-      pushCloudData({ appointments: updatedApps, clients: updatedClients, settings })
+      // 4. Salva immediatamente nel Cloud GitHub unendo eventuali novità dagli altri dispositivi
+      setIsSyncing(true)
+      pushCloudData({
+        appointments: updatedApps,
+        clients: updatedClients,
+        settings: loadSettings(),
+        services: loadServices(),
+        deletedAppIds: loadDeletedAppIds(),
+        deletedClientIds: loadDeletedClientIds()
+      })
         .then((res) => {
           if (res && res.success) {
-            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+            if (res.data?.appointments) {
+              saveAppointments(res.data.appointments)
+              setAppointments(res.data.appointments)
+            }
+            if (res.data?.clients) {
+              saveClients(res.data.clients)
+              setClients(res.data.clients)
+            }
+            setLastSyncTime(
+              new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+            )
             setSyncStatus('online')
+          } else {
+            setSyncStatus('error')
           }
         })
-        .catch((err) => console.warn('Errore push cloud:', err))
+        .catch((err) => {
+          console.warn('Errore push cloud:', err)
+          setSyncStatus('error')
+        })
+        .finally(() => setIsSyncing(false))
 
       return sanitizedApp
     } catch (e) {
@@ -500,29 +516,59 @@ export default function App() {
     saveDeletedAppIds(updatedDeleted)
     setDeletedAppIds(updatedDeleted)
 
-    const updated = appointments.filter((a) => a && a.id !== id)
-    setAppointments(updated)
+    const updated = loadAppointments().filter((a) => a && a.id !== id)
     saveAppointments(updated)
+    setAppointments(updated)
 
+    setIsSyncing(true)
     pushCloudData({
       appointments: updated,
-      clients,
-      settings,
+      clients: loadClients(),
+      settings: loadSettings(),
+      services: loadServices(),
       deletedAppIds: updatedDeleted,
       deletedClientIds: loadDeletedClientIds()
-    }).then((res) => {
-      if (res && res.success) {
-        setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
-        setSyncStatus('online')
-      }
-    }).catch((err) => console.warn('Errore push delete app:', err))
+    })
+      .then((res) => {
+        if (res && res.success) {
+          setLastSyncTime(
+            new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+          )
+          setSyncStatus('online')
+        } else {
+          setSyncStatus('error')
+        }
+      })
+      .catch((err) => {
+        console.warn('Errore push delete app:', err)
+        setSyncStatus('error')
+      })
+      .finally(() => setIsSyncing(false))
   }
 
   // Aggiornamento Rapido Stato Appuntamento
   const handleUpdateStatus = (id, newStatus) => {
-    const updated = appointments.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
+    const nowIso = new Date().toISOString()
+    const updated = loadAppointments().map((a) =>
+      a.id === id ? { ...a, status: newStatus, updatedAt: nowIso } : a
+    )
+    saveAppointments(updated)
     setAppointments(updated)
-    pushCloudData({ appointments: updated, clients, settings })
+    pushCloudData({
+      appointments: updated,
+      clients: loadClients(),
+      settings: loadSettings(),
+      services: loadServices(),
+      deletedAppIds: loadDeletedAppIds(),
+      deletedClientIds: loadDeletedClientIds()
+    }).then((res) => {
+      if (res && res.success) {
+        setLastSyncTime(
+          new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+        )
+        setSyncStatus('online')
+      }
+    })
   }
 
   // Apertura modale WhatsApp
@@ -587,6 +633,7 @@ export default function App() {
       )
 
       const toAdd = []
+      const nowIso = new Date().toISOString()
       newClients.forEach((imported) => {
         if (!imported) return
         const cleanName = String(imported.name || '').trim()
@@ -594,14 +641,16 @@ export default function App() {
         if (!cleanName) return
 
         const nameKey = cleanName.toLowerCase()
-        const isDuplicate = existingNames.has(nameKey) || (cleanPhone && existingPhones.has(cleanPhone))
+        const isDuplicate =
+          existingNames.has(nameKey) || (cleanPhone && existingPhones.has(cleanPhone))
 
         if (!isDuplicate && !delSet.has(imported.id)) {
           const clientObj = {
             id: imported.id || 'c_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
             name: cleanName,
             phone: cleanPhone,
-            notes: String(imported.notes || '').trim()
+            notes: String(imported.notes || '').trim(),
+            updatedAt: nowIso
           }
           toAdd.push(clientObj)
           existingNames.add(nameKey)
@@ -617,15 +666,18 @@ export default function App() {
 
       // Unico salvataggio cloud atomico per tutti i contatti insieme
       pushCloudData({
-        appointments,
+        appointments: loadAppointments(),
         clients: finalUpdated,
-        settings,
+        settings: loadSettings(),
+        services: loadServices(),
         deletedAppIds: loadDeletedAppIds(),
         deletedClientIds: currentDel
       })
         .then((res) => {
           if (res && res.success) {
-            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+            setLastSyncTime(
+              new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+            )
             setSyncStatus('online')
           }
         })
@@ -642,7 +694,7 @@ export default function App() {
     if (isClientsModalOpen && clients.length === 0) {
       handleTriggerSync(false)
     }
-  }, [isClientsModalOpen, clients.length])
+  }, [isClientsModalOpen, clients.length, handleTriggerSync])
 
   const handleHardReload = () => {
     if ('caches' in window) {
@@ -651,7 +703,8 @@ export default function App() {
       })
     }
     const tokenPart = window.location.hash || ''
-    window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now() + tokenPart
+    window.location.href =
+      window.location.origin + window.location.pathname + '?v=' + Date.now() + tokenPart
   }
 
   const dueAlertsCount = appointments.filter(
@@ -666,7 +719,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col text-slate-900 pb-16 md:pb-6" style={{ backgroundColor: '#ffffff' }}>
+    <div
+      className="min-h-screen bg-white flex flex-col text-slate-900 pb-16 md:pb-6"
+      style={{ backgroundColor: '#ffffff' }}
+    >
       {/* Banner per richiedere i permessi di notifica e sveglia sullo smartphone se non ancora attivi */}
       <NotificationPermissionBanner />
 
@@ -704,9 +760,23 @@ export default function App() {
       <div className="bg-slate-50 border-b border-slate-200/80 px-3 sm:px-6 py-1.5 flex items-center justify-between text-[11px] text-slate-600">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isSyncing
+                  ? 'bg-amber-500 animate-ping'
+                  : syncStatus === 'error'
+                    ? 'bg-red-500'
+                    : 'bg-emerald-500'
+              }`}
+            />
             <span className="font-semibold text-slate-800">
-              {isSyncing ? 'Sincronizzazione Cloud...' : `Cloud Attivo ${lastSyncTime ? `(${lastSyncTime})` : ''}`}
+              {isSyncing
+                ? 'Sincronizzazione Cloud...'
+                : syncStatus === 'error'
+                  ? 'Riconnessione Cloud...'
+                  : `Cloud Attivo (${settings?.cloudSync?.syncCode || DEFAULT_ROOM_CODE}${
+                      lastSyncTime ? ` • ${lastSyncTime}` : ''
+                    })`}
             </span>
           </span>
           <span className="hidden sm:inline text-slate-300">•</span>
@@ -804,7 +874,7 @@ export default function App() {
         onUpdateServices={handleUpdateServices}
       />
 
-      {/* 2. Modale WhatsApp (Il fulcro della richiesta) */}
+      {/* 2. Modale WhatsApp */}
       <WhatsAppModal
         isOpen={isWhatsAppModalOpen}
         onClose={() => setIsWhatsAppModalOpen(false)}
@@ -821,17 +891,32 @@ export default function App() {
         appointments={appointments}
         onBatchImportClients={handleBatchImportClients}
         onSaveClient={(newClient) => {
+          const nowIso = new Date().toISOString()
+          const stamped = { ...newClient, updatedAt: nowIso }
+          const currentClients = loadClients()
           let updatedClients = []
-          const exists = clients.some((c) => c.id === newClient.id)
+          const exists = currentClients.some((c) => c.id === stamped.id)
           if (exists) {
-            updatedClients = clients.map((c) => (c.id === newClient.id ? newClient : c))
+            updatedClients = currentClients.map((c) => (c.id === stamped.id ? stamped : c))
           } else {
-            updatedClients = [...clients, newClient]
+            updatedClients = [...currentClients, stamped]
           }
-          setClients(updatedClients)
           saveClients(updatedClients)
-          pushCloudData({ appointments, clients: updatedClients, settings, services }).then(() => {
-            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+          setClients(updatedClients)
+          pushCloudData({
+            appointments: loadAppointments(),
+            clients: updatedClients,
+            settings: loadSettings(),
+            services: loadServices(),
+            deletedAppIds: loadDeletedAppIds(),
+            deletedClientIds: loadDeletedClientIds()
+          }).then((res) => {
+            if (res && res.success) {
+              setLastSyncTime(
+                new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+              )
+              setSyncStatus('online')
+            }
           })
         }}
         onDeleteClient={(id) => {
@@ -841,23 +926,27 @@ export default function App() {
           saveDeletedClientIds(updatedDeleted)
           setDeletedClientIds(updatedDeleted)
 
-          const updated = clients.filter((c) => c && c.id !== id)
-          setClients(updated)
+          const updated = loadClients().filter((c) => c && c.id !== id)
           saveClients(updated)
+          setClients(updated)
 
           pushCloudData({
-            appointments,
+            appointments: loadAppointments(),
             clients: updated,
-            settings,
-            services,
+            settings: loadSettings(),
+            services: loadServices(),
             deletedAppIds: loadDeletedAppIds(),
             deletedClientIds: updatedDeleted
-          }).then((res) => {
-            if (res && res.success) {
-              setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
-              setSyncStatus('online')
-            }
-          }).catch((err) => console.warn('Errore push delete client:', err))
+          })
+            .then((res) => {
+              if (res && res.success) {
+                setLastSyncTime(
+                  new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+                )
+                setSyncStatus('online')
+              }
+            })
+            .catch((err) => console.warn('Errore push delete client:', err))
         }}
         onNewAppointmentWithClient={handleNewAppointmentWithClient}
         onTriggerSync={() => handleTriggerSync(false)}
@@ -877,23 +966,15 @@ export default function App() {
         onClose={() => setIsSettingsModalOpen(false)}
         settings={settings}
         onSaveSettings={(newSettings) => {
-          setSettings(newSettings)
           saveSettings(newSettings)
+          setSettings(loadSettings())
           if (Array.isArray(newSettings.services)) {
+            saveServices(newSettings.services)
             setServices(newSettings.services)
           }
-          pushCloudData({
-            appointments,
-            clients,
-            settings: newSettings,
-            services: newSettings.services || services,
-            deletedAppIds: loadDeletedAppIds(),
-            deletedClientIds: loadDeletedClientIds()
-          }).then(() => {
-            setLastSyncTime(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
-          })
+          handleTriggerSync(true, newSettings?.cloudSync?.syncCode)
         }}
-        onTriggerSync={() => handleTriggerSync(true)}
+        onTriggerSync={(roomCode) => handleTriggerSync(true, roomCode)}
         isSyncing={isSyncing}
       />
     </div>

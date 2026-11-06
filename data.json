@@ -1,4 +1,5 @@
 {
+  "updatedAt": "2026-11-06T10:50:00.000Z",
   "appointments": [
     {
       "id": "app_1790524062868_9g3u",
@@ -27,6 +28,7 @@
       "reminderAlert": "today"
     },
     {
+      "id": "app_1790569193575_e6nf",
       "clientName": "Raffaele Pappada",
       "clientPhone": "3911166240",
       "service": "Appuntamento Generale",
@@ -36,10 +38,10 @@
       "status": "confirmed",
       "price": "",
       "notes": "Viaggio a Milano",
-      "reminderAlert": "1d",
-      "id": "app_1790569193575_e6nf"
+      "reminderAlert": "1d"
     },
     {
+      "id": "app_1790588165036_0vqs",
       "clientName": "Raffaele Pappada",
       "clientPhone": "3911166240",
       "service": "Udienza / Tribunale",
@@ -48,9 +50,50 @@
       "duration": 60,
       "status": "confirmed",
       "price": "",
-      "notes": "deposito perizia da parte del CTU incaricato dal Tribunale causa Capobianco vs Pappadà",
+      "notes": "deposito perizia da parte del CTU incaricato dal Tribunale causa Capobianco vs Pappad",
+      "reminderAlert": "1d"
+    },
+    {
+      "id": "app_1793895564309_oo5x",
+      "clientName": "Ariano Benito",
+      "clientPhone": "3339140731",
+      "service": "Appuntamento Generale",
+      "date": "2026-11-06",
+      "time": "18:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
       "reminderAlert": "1d",
-      "id": "app_1790588165036_0vqs"
+      "updatedAt": "2026-11-06T10:50:00.000Z"
+    },
+    {
+      "id": "app_1793955672582_ag3i",
+      "clientName": "Tecnico Informatico",
+      "clientPhone": "",
+      "service": "Appuntamento Generale",
+      "date": "2026-11-10",
+      "time": "11:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "1d",
+      "updatedAt": "2026-11-06T10:50:00.000Z"
+    },
+    {
+      "id": "app_1793955647840_g9kq",
+      "clientName": "Notaio",
+      "clientPhone": "",
+      "service": "Consulenza Legale",
+      "date": "2026-11-11",
+      "time": "18:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "1d",
+      "updatedAt": "2026-11-06T10:50:00.000Z"
     }
   ],
   "clients": [
@@ -187,24 +230,31 @@
       "notes": ""
     },
     {
-      "id": "c1",
-      "name": "Marco Rossi",
-      "phone": "3471234567",
-      "notes": "Cliente abituale"
+      "id": "c_1793895458778",
+      "name": "Notaio",
+      "phone": "",
+      "notes": ""
     },
     {
-      "id": "c2",
-      "name": "Laura Bianchi",
-      "phone": "3389876543",
-      "notes": "Preferisce il pomeriggio"
+      "id": "c_1793895564310",
+      "name": "Ariano Benito",
+      "phone": "3339140731",
+      "notes": ""
     },
     {
-      "id": "c3",
-      "name": "Giuseppe Verdi",
-      "phone": "3201122334",
+      "id": "c_1793955672583",
+      "name": "Tecnico Informatico",
+      "phone": "",
       "notes": ""
     }
   ],
+  "deletedAppIds": [
+    "demo-1",
+    "app_1790588067424_7bss",
+    "app_1793895458777_7r36",
+    "app_1793895493695_xaf4"
+  ],
+  "deletedClientIds": [],
   "settings": {
     "businessName": "Studio Legale Pappadà",
     "businessPhone": "",
@@ -230,14 +280,20 @@
       "custom": "Gentile {nome}, Le scriviamo in merito all'appuntamento del {data} alle {ora} ({servizio}). Cordiali saluti."
     },
     "cloudSync": {
-      "enabled": false,
-      "syncCode": "",
-      "lastSync": null
+      "enabled": true,
+      "syncCode": "CAL-SEPUB",
+      "lastSync": "2026-11-06T10:50:00.000Z"
     }
   },
-  "deletedAppIds": [
-    "demo-1",
-    "app_1790588067424_7bss"
-  ],
-  "deletedClientIds": []
+  "services": [
+    "Consulenza Legale",
+    "Consulenza Fiscale",
+    "Appuntamento in Studio",
+    "Udienza / Tribunale",
+    "Firma Documenti",
+    "Dichiarazione Redditi",
+    "Ricorso / Pratica",
+    "Riunione",
+    "Appuntamento Generale"
+  ]
 }

@@ -1,5 +1,6 @@
 /**
  * Utility per la persistenza dei dati e sincronizzazione
+ * Include doppio salvataggio automatico (LocalStorage + IndexedDB)
  */
 
 const STORAGE_KEY_APPOINTMENTS = 'wa_calendar_appointments_v1'
@@ -8,6 +9,93 @@ const STORAGE_KEY_CLIENTS = 'wa_calendar_clients_v1'
 const STORAGE_KEY_DELETED_APPS = 'wa_calendar_deleted_apps_v1'
 const STORAGE_KEY_DELETED_CLIENTS = 'wa_calendar_deleted_clients_v1'
 const STORAGE_KEY_SERVICES = 'wa_calendar_services_v1'
+
+export const DEFAULT_ROOM_CODE = 'CAL-SEPUB'
+
+const IDB_NAME = 'wa_calendar_backup_db'
+const IDB_STORE = 'kv_store'
+
+function openBackupDB() {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      resolve(null)
+      return
+    }
+    try {
+      const req = window.indexedDB.open(IDB_NAME, 1)
+      req.onupgradeneeded = () => {
+        const db = req.result
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE)
+        }
+      }
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => resolve(null)
+    } catch (e) {
+      resolve(null)
+    }
+  })
+}
+
+async function idbSet(key, value) {
+  try {
+    const db = await openBackupDB()
+    if (!db) return
+    const tx = db.transaction(IDB_STORE, 'readwrite')
+    tx.objectStore(IDB_STORE).put(value, key)
+  } catch (e) {}
+}
+
+async function idbGet(key) {
+  try {
+    const db = await openBackupDB()
+    if (!db) return null
+    return await new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly')
+      const req = tx.objectStore(IDB_STORE).get(key)
+      req.onsuccess = () => resolve(req.result ?? null)
+      req.onerror = () => resolve(null)
+    })
+  } catch (e) {
+    return null
+  }
+}
+
+/**
+ * Ripristina automaticamente da IndexedDB se il LocalStorage è stato svuotato dal browser
+ */
+export async function restoreFromIndexedDBIfNeeded() {
+  try {
+    const restored = {}
+    const rawApps = localStorage.getItem(STORAGE_KEY_APPOINTMENTS)
+    if (!rawApps || rawApps === '[]') {
+      const idbApps = await idbGet(STORAGE_KEY_APPOINTMENTS)
+      if (Array.isArray(idbApps) && idbApps.length > 0) {
+        localStorage.setItem(STORAGE_KEY_APPOINTMENTS, JSON.stringify(idbApps))
+        restored.appointments = idbApps
+      }
+    }
+    const rawClients = localStorage.getItem(STORAGE_KEY_CLIENTS)
+    if (!rawClients || rawClients === '[]') {
+      const idbClients = await idbGet(STORAGE_KEY_CLIENTS)
+      if (Array.isArray(idbClients) && idbClients.length > 0) {
+        localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(idbClients))
+        restored.clients = idbClients
+      }
+    }
+    const rawSettings = localStorage.getItem(STORAGE_KEY_SETTINGS)
+    if (!rawSettings) {
+      const idbSettings = await idbGet(STORAGE_KEY_SETTINGS)
+      if (idbSettings && typeof idbSettings === 'object') {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(idbSettings))
+        restored.settings = idbSettings
+      }
+    }
+    return restored
+  } catch (e) {
+    return {}
+  }
+}
 
 export const DEFAULT_SERVICES = [
   'Consulenza Legale',
@@ -35,24 +123,10 @@ export function toLocalDateString(d = new Date()) {
   return `${year}-${month}-${day}`
 }
 
-export const INITIAL_APPOINTMENTS = [
-  {
-    id: 'demo-1',
-    clientName: 'Marco Rossi',
-    clientPhone: '3471234567',
-    service: 'Consulenza Legale',
-    date: toLocalDateString(new Date()),
-    time: '10:00',
-    duration: 60,
-    status: 'confirmed',
-    price: 80,
-    notes: 'Primo incontro di presentazione pratica.',
-    createdAt: new Date().toISOString()
-  }
-]
+export const INITIAL_APPOINTMENTS = []
 
 export const INITIAL_SETTINGS = {
-  businessName: 'Studio Pappadà',
+  businessName: 'Studio Legale Pappadà',
   businessPhone: '',
   businessAddress: '',
   defaultPrefix: '+39',
@@ -66,9 +140,43 @@ export const INITIAL_SETTINGS = {
     custom: `Gentile {nome}, Le scriviamo in merito all'appuntamento del {data} alle {ora} ({servizio}). Cordiali saluti.`
   },
   cloudSync: {
-    enabled: false,
-    syncCode: '',
+    enabled: true,
+    syncCode: DEFAULT_ROOM_CODE,
     lastSync: null
+  }
+}
+
+/**
+ * Legge il codice stanza dall'URL (?room=...) se presente, altrimenti dalle impostazioni salvate
+ */
+export function getActiveRoomCode() {
+  try {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const urlRoom = params.get('room')
+      if (urlRoom && urlRoom.trim().length >= 3) {
+        const cleanRoom = urlRoom.trim().toUpperCase()
+        const raw = localStorage.getItem(STORAGE_KEY_SETTINGS)
+        const parsed = raw ? JSON.parse(raw) : { ...INITIAL_SETTINGS }
+        parsed.cloudSync = {
+          ...(parsed.cloudSync || {}),
+          enabled: true,
+          syncCode: cleanRoom
+        }
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(parsed))
+        return cleanRoom
+      }
+    }
+    const raw = localStorage.getItem(STORAGE_KEY_SETTINGS)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed?.cloudSync?.syncCode && parsed.cloudSync.syncCode.trim()) {
+        return parsed.cloudSync.syncCode.trim().toUpperCase()
+      }
+    }
+    return DEFAULT_ROOM_CODE
+  } catch (e) {
+    return DEFAULT_ROOM_CODE
   }
 }
 
@@ -103,12 +211,14 @@ export function saveServices(services) {
       : DEFAULT_SERVICES
     const finalServices = safe.length > 0 ? safe : DEFAULT_SERVICES
     localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(finalServices))
+    idbSet(STORAGE_KEY_SERVICES, finalServices)
     try {
       const settingsRaw = localStorage.getItem(STORAGE_KEY_SETTINGS)
       if (settingsRaw) {
         const parsed = JSON.parse(settingsRaw)
         parsed.services = finalServices
         localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(parsed))
+        idbSet(STORAGE_KEY_SETTINGS, parsed)
       }
     } catch (err) {}
     return finalServices
@@ -138,19 +248,20 @@ export function saveOwnerPhone(phone) {
 export function loadDeletedAppIds() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_DELETED_APPS)
-    if (!raw) return []
+    if (!raw) return ['demo-1']
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed) ? Array.from(new Set(['demo-1', ...parsed])) : ['demo-1']
   } catch (e) {
-    return []
+    return ['demo-1']
   }
 }
 
 // Salva l'elenco degli ID appuntamenti eliminati
 export function saveDeletedAppIds(ids) {
   try {
-    const safeList = Array.isArray(ids) ? ids.slice(-300) : [] // Conserva gli ultimi 300
+    const safeList = Array.isArray(ids) ? Array.from(new Set(['demo-1', ...ids])).slice(-300) : ['demo-1']
     localStorage.setItem(STORAGE_KEY_DELETED_APPS, JSON.stringify(safeList))
+    idbSet(STORAGE_KEY_DELETED_APPS, safeList)
   } catch (e) {}
 }
 
@@ -171,6 +282,7 @@ export function saveDeletedClientIds(ids) {
   try {
     const safeList = Array.isArray(ids) ? ids.slice(-300) : []
     localStorage.setItem(STORAGE_KEY_DELETED_CLIENTS, JSON.stringify(safeList))
+    idbSet(STORAGE_KEY_DELETED_CLIENTS, safeList)
   } catch (e) {}
 }
 
@@ -179,9 +291,9 @@ export function loadAppointments() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_APPOINTMENTS)
     const deleted = new Set(loadDeletedAppIds())
-    if (!raw) return INITIAL_APPOINTMENTS.filter((a) => !deleted.has(a.id))
+    if (!raw) return []
     const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return INITIAL_APPOINTMENTS.filter((a) => !deleted.has(a.id))
+    if (!Array.isArray(parsed)) return []
     return parsed.filter((a) => a && a.id && !deleted.has(a.id))
   } catch (e) {
     console.error('Errore durante il caricamento degli appuntamenti:', e)
@@ -189,36 +301,83 @@ export function loadAppointments() {
   }
 }
 
-// Salva appuntamenti in LocalStorage
+// Salva appuntamenti in LocalStorage + IndexedDB
 export function saveAppointments(appointments) {
   try {
-    localStorage.setItem(STORAGE_KEY_APPOINTMENTS, JSON.stringify(appointments))
+    const safe = Array.isArray(appointments) ? appointments.filter((a) => a && a.id && a.id !== 'demo-1') : []
+    localStorage.setItem(STORAGE_KEY_APPOINTMENTS, JSON.stringify(safe))
+    idbSet(STORAGE_KEY_APPOINTMENTS, safe)
   } catch (e) {
     console.error('Errore durante il salvataggio degli appuntamenti:', e)
   }
 }
 
-// Carica impostazioni
+// Carica impostazioni (preservando sempre il codice stanza attivo)
 export function loadSettings() {
   try {
+    const activeRoom = getActiveRoomCode()
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS)
     const currentServices = loadServices()
-    const base = { ...INITIAL_SETTINGS, services: currentServices }
+    const base = {
+      ...INITIAL_SETTINGS,
+      services: currentServices,
+      cloudSync: {
+        enabled: true,
+        syncCode: activeRoom,
+        lastSync: null
+      }
+    }
     if (!raw) return base
     const parsed = JSON.parse(raw)
     const validServices = Array.isArray(parsed?.services) && parsed.services.length > 0
       ? parsed.services.filter((s) => typeof s === 'string' && s.trim().length > 0 && !s.toLowerCase().includes('taglio'))
       : currentServices
-    return { ...base, ...parsed, services: validServices }
+    const syncCode = (parsed?.cloudSync?.syncCode && parsed.cloudSync.syncCode.trim())
+      ? parsed.cloudSync.syncCode.trim().toUpperCase()
+      : activeRoom
+    return {
+      ...base,
+      ...parsed,
+      services: validServices,
+      cloudSync: {
+        ...(parsed?.cloudSync || {}),
+        enabled: true,
+        syncCode
+      }
+    }
   } catch (e) {
     return { ...INITIAL_SETTINGS, services: loadServices() }
   }
 }
 
-// Salva impostazioni
+// Salva impostazioni (non cancella mai il codice stanza esistente con una stringa vuota)
 export function saveSettings(settings) {
   try {
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings))
+    if (!settings || typeof settings !== 'object') return
+    const existingRaw = localStorage.getItem(STORAGE_KEY_SETTINGS)
+    let existingCode = DEFAULT_ROOM_CODE
+    if (existingRaw) {
+      try {
+        const existingParsed = JSON.parse(existingRaw)
+        if (existingParsed?.cloudSync?.syncCode?.trim()) {
+          existingCode = existingParsed.cloudSync.syncCode.trim().toUpperCase()
+        }
+      } catch (err) {}
+    }
+    const incomingCode = settings?.cloudSync?.syncCode?.trim()
+      ? settings.cloudSync.syncCode.trim().toUpperCase()
+      : existingCode
+
+    const finalSettings = {
+      ...settings,
+      cloudSync: {
+        ...(settings.cloudSync || {}),
+        enabled: true,
+        syncCode: incomingCode
+      }
+    }
+    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(finalSettings))
+    idbSet(STORAGE_KEY_SETTINGS, finalSettings)
   } catch (e) {
     console.error('Errore salvataggio impostazioni:', e)
   }
@@ -228,14 +387,7 @@ export function saveSettings(settings) {
 export function loadClients() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CLIENTS)
-    if (!raw) {
-      // Estrae clienti iniziali dagli appuntamenti demo
-      return [
-        { id: 'c1', name: 'Marco Rossi', phone: '3471234567', notes: 'Cliente abituale' },
-        { id: 'c2', name: 'Laura Bianchi', phone: '3389876543', notes: 'Preferisce il pomeriggio' },
-        { id: 'c3', name: 'Giuseppe Verdi', phone: '3201122334', notes: '' }
-      ]
-    }
+    if (!raw) return []
     const parsed = JSON.parse(raw)
     const deleted = new Set(loadDeletedClientIds())
     return Array.isArray(parsed) ? parsed.filter((c) => c && c.id && !deleted.has(c.id)) : []
@@ -247,7 +399,9 @@ export function loadClients() {
 // Salva rubrica clienti
 export function saveClients(clients) {
   try {
-    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(clients))
+    const safe = Array.isArray(clients) ? clients.filter((c) => c && c.id) : []
+    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(safe))
+    idbSet(STORAGE_KEY_CLIENTS, safe)
   } catch (e) {
     console.error('Errore salvataggio clienti:', e)
   }
