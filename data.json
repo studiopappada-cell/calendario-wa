@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-06T18:12:59.220Z",
+  "updatedAt": "2026-11-06T18:13:38.386Z",
   "roomCode": "CAL-SEPUB",
   "appointments": [
     {
@@ -95,6 +95,20 @@
       "notes": "",
       "reminderAlert": "1d",
       "updatedAt": "2026-11-06T10:50:00.000Z"
+    },
+    {
+      "id": "app_1793988797293",
+      "clientName": "Ariano Benito",
+      "clientPhone": "3339140731",
+      "service": "Consulenza Legale",
+      "date": "2026-11-09",
+      "time": "18:00",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "today",
+      "updatedAt": "2026-11-06T18:13:37.836Z"
     }
   ],
   "clients": [
@@ -307,7 +321,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-06T18:12:59.220Z"
+      "lastSync": "2026-11-06T18:13:38.386Z"
     }
   },
   "services": [
