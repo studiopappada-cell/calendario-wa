@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-07T06:42:19.049Z",
+  "updatedAt": "2026-11-07T06:43:02.925Z",
   "roomCode": "CAL-SEPUB",
   "appointments": [
     {
@@ -123,6 +123,20 @@
       "notes": "",
       "reminderAlert": "today",
       "updatedAt": "2026-11-06T18:15:43.961Z"
+    },
+    {
+      "clientName": "Mercinelli Chiara",
+      "clientPhone": "",
+      "service": "Dichiarazione Redditi",
+      "date": "2026-11-09",
+      "time": "09:15",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "Fare versamento",
+      "reminderAlert": "1d",
+      "id": "app_1794033782038_dbyj",
+      "updatedAt": "2026-11-07T06:43:02.038Z"
     }
   ],
   "clients": [
@@ -349,7 +363,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-07T06:42:19.049Z"
+      "lastSync": "2026-11-07T06:43:02.925Z"
     }
   },
   "services": [
