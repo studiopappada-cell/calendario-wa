@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-06T18:16:30.958Z",
+  "updatedAt": "2026-11-07T06:42:19.049Z",
   "roomCode": "CAL-SEPUB",
   "appointments": [
     {
@@ -306,6 +306,13 @@
       "phone": "+393493593850",
       "notes": "",
       "updatedAt": "2026-11-06T18:14:57.290Z"
+    },
+    {
+      "id": "c_1794033738302",
+      "name": "Mercinelli Chiara",
+      "phone": "",
+      "notes": "",
+      "updatedAt": "2026-11-07T06:42:18.302Z"
     }
   ],
   "deletedAppIds": [
@@ -342,7 +349,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-06T18:16:30.958Z"
+      "lastSync": "2026-11-07T06:42:19.049Z"
     }
   },
   "services": [
