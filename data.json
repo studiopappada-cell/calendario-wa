@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-07T11:11:11.305Z",
+  "updatedAt": "2026-11-10T18:19:10.466Z",
   "roomCode": "CAL-SEPUB",
   "appointments": [
     {
@@ -138,6 +138,20 @@
       "reminderAlert": "1d",
       "id": "app_1794033782038_dbyj",
       "updatedAt": "2026-11-07T06:43:02.038Z"
+    },
+    {
+      "clientName": "Giuseppe di Palmo",
+      "clientPhone": "+393283081005",
+      "service": "Consulenza Fiscale",
+      "date": "2026-11-12",
+      "time": "17:30",
+      "duration": 60,
+      "status": "confirmed",
+      "price": "",
+      "notes": "",
+      "reminderAlert": "today",
+      "id": "app_1794334750009_ln13",
+      "updatedAt": "2026-11-10T18:19:10.009Z"
     }
   ],
   "clients": [
@@ -364,7 +378,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-07T11:11:11.305Z"
+      "lastSync": "2026-11-10T18:19:10.466Z"
     }
   },
   "services": [
