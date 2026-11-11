@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-10T18:19:24.409Z",
+  "updatedAt": "2026-11-11T15:17:57.690Z",
   "roomCode": "CAL-SEPUB",
   "appointments": [
     {
@@ -306,24 +306,6 @@
       "notes": ""
     },
     {
-      "id": "c1",
-      "name": "Marco Rossi",
-      "phone": "3471234567",
-      "notes": "Cliente abituale"
-    },
-    {
-      "id": "c2",
-      "name": "Laura Bianchi",
-      "phone": "3389876543",
-      "notes": "Preferisce il pomeriggio"
-    },
-    {
-      "id": "c3",
-      "name": "Giuseppe Verdi",
-      "phone": "3201122334",
-      "notes": ""
-    },
-    {
       "id": "c_1793955647840",
       "name": "Notaio",
       "phone": "",
@@ -346,11 +328,20 @@
   ],
   "deletedAppIds": [
     "demo-1",
+    "app_1790528823866_1rd1",
+    "app_1790530116065_96af",
+    "app_1790528484779_6hld",
+    "app_1790527973886_4r6o",
     "app_1790588067424_7bss",
     "app_1793895458777_7r36",
     "app_1793895493695_xaf4"
   ],
-  "deletedClientIds": [],
+  "deletedClientIds": [
+    "c3",
+    "c2",
+    "c1",
+    "gcontact_1790532820877_kqr7i"
+  ],
   "settings": {
     "businessName": "Studio Legale Pappadà",
     "businessPhone": "",
@@ -378,7 +369,7 @@
     "cloudSync": {
       "enabled": true,
       "syncCode": "CAL-SEPUB",
-      "lastSync": "2026-11-10T18:19:24.409Z"
+      "lastSync": "2026-11-11T15:17:57.690Z"
     }
   },
   "services": [
